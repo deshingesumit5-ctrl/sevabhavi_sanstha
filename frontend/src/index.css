@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Mukta:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cream text-charcoal font-body selection:bg-saffron/30;
+    margin: 0;
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading font-bold text-charcoal;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-cream;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-saffron/40 rounded-full hover:bg-saffron/60 transition-colors;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
