@@ -109,8 +109,123 @@ const AdminMarriagePage: React.FC = () => {
           <p className="text-sm text-charcoal/50 font-semibold">कोणतेही विवाह नोंदणी अर्ज नाहीत.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-maroon/8 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+       <div className="bg-white rounded-2xl border border-maroon/8 shadow-sm overflow-hidden">
+          {/* MOBILE: big-font stacked cards */}
+          <div className="md:hidden divide-y divide-charcoal/8">
+            {marriages.map((item) => (
+              <div key={item.id} className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-charcoal truncate">{item.fullName}</p>
+                    <p className="text-sm text-charcoal/60 font-semibold">{item.mobile}</p>
+                  </div>
+                  {getStatusBadge(item.approvalStatus)}
+                </div>
+
+                <div className="flex items-center gap-2 mt-2">
+                  {getProfileBadge(item.profileType)}
+                  <span className="text-sm text-charcoal/60 font-semibold">{item.city}</span>
+                  <span className="text-sm text-charcoal/40 font-semibold">· {formatDate(item.createdAt)}</span>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                    className="flex-1 justify-center px-3 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 rounded-xl text-sm font-bold flex items-center gap-1.5"
+                  >
+                    <Eye size={16} />
+                    अर्ज बघा
+                    {expandedId === item.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {item.approvalStatus === 'PENDING' && (
+                    <>
+                      <button
+                        onClick={() => handleStatusUpdate(item.id, 'APPROVED')}
+                        className="px-3 py-2.5 bg-green-600 active:bg-green-700 text-white rounded-xl"
+                      >
+                        <CheckCircle2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate(item.id, 'REJECTED')}
+                        className="px-3 py-2.5 bg-red-500 active:bg-red-600 text-white rounded-xl"
+                      >
+                        <XCircle size={18} />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {expandedId === item.id && (
+                  <div className="mt-4 bg-cream/40 rounded-xl p-4 space-y-4 text-sm">
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">वैयक्तिक माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">पूर्ण नाव</span><span className="font-bold text-charcoal/90">{item.fullName}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">जन्मतारीख</span><span className="font-bold text-charcoal/90">{formatDate(item.birthDate)}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">उंची</span><span className="font-bold text-charcoal/90">{item.height}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">रक्तगट</span><span className="font-bold text-charcoal/90">{item.bloodGroup}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">वैवाहिक स्थिती</span><span className="font-bold text-charcoal/90">{getMaritalLabel(item.maritalStatus)}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">धर्म</span><span className="font-bold text-charcoal/90">{item.religion}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">जात</span><span className="font-bold text-charcoal/90">{item.caste}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">गोत्र</span><span className="font-bold text-charcoal/90">{item.gotra || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">मंगळ दोष</span><span className="font-bold text-charcoal/90">{item.manglik === 'yes' ? 'होय' : item.manglik === 'no' ? 'नाही' : 'माहित नाही'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">शहर</span><span className="font-bold text-charcoal/90">{item.city}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">जिल्हा</span><span className="font-bold text-charcoal/90">{item.district?.nameMr || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">राज्य</span><span className="font-bold text-charcoal/90">{item.state?.nameMr || '-'}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">संपर्क माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">मोबाईल</span><span className="font-bold text-charcoal/90">{item.mobile}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">ईमेल</span><span className="font-bold text-charcoal/90">{item.email || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">पालकांचा नंबर</span><span className="font-bold text-charcoal/90">{item.parentMobile}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">शैक्षणिक माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">शिक्षण स्तर</span><span className="font-bold text-charcoal/90">{item.educationLevel}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">पदवी</span><span className="font-bold text-charcoal/90">{item.degreeName}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">शाळा / कॉलेज</span><span className="font-bold text-charcoal/90">{item.schoolCollege || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">उत्तीर्ण वर्ष</span><span className="font-bold text-charcoal/90">{item.passingYear}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">व्यावसायिक माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">नोकरी / व्यवसाय प्रकार</span><span className="font-bold text-charcoal/90">{getOccupationLabel(item.occupationType)}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">पद</span><span className="font-bold text-charcoal/90">{item.designation || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">कंपनी</span><span className="font-bold text-charcoal/90">{item.companyName || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">वार्षिक उत्पन्न</span><span className="font-bold text-charcoal/90">{item.annualIncome}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">कुटुंबाची माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">वडिलांचे नाव</span><span className="font-bold text-charcoal/90">{item.fatherName}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">वडिलांचा व्यवसाय</span><span className="font-bold text-charcoal/90">{item.fatherOccupation}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">आईचे नाव</span><span className="font-bold text-charcoal/90">{item.motherName}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">भाऊ / बहीण</span><span className="font-bold text-charcoal/90">{item.brothers} भाऊ, {item.sisters} बहीण</span></div>
+                        {item.familyBackground && (
+                          <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">कुटुंब पार्श्वभूमी</span><span className="font-bold text-charcoal/90">{item.familyBackground}</span></div>
+                        )}
+                        <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">स्वतःबद्दल</span><span className="font-bold text-charcoal/90">{item.aboutSelf}</span></div>
+                        <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">अपेक्षा</span><span className="font-bold text-charcoal/90">{item.expectations}</span></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: original table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-cream/70 to-cream/40 border-b-2 border-maroon/15">

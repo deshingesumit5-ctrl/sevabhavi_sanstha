@@ -17,9 +17,7 @@ export const AboutPage: React.FC = () => {
             className="w-full min-h-[160px] sm:min-h-[250px]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-maroon/80 to-transparent flex items-end p-6 z-10">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-heading m-0">
-              आमच्याबद्दल 
-            </h1>
+          
           </div>
         </div>
       </section>

@@ -34,12 +34,6 @@ export const ContactPage: React.FC = () => {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-maroon/80 to-transparent flex items-end p-6 z-10">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-saffron rounded-full text-white shadow-md">
-                <Mail size={24} />
-              </div>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-heading m-0">
-                संपर्क साधा 
-              </h1>
             </div>
           </div>
         </div>

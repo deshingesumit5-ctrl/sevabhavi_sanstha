@@ -23,12 +23,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   const publicMenuItems = [
-    { id: 'home',                 path: '/',                      label: 'होम',            icon: Home },
-    { id: 'about',                path: '/about',                 label: 'आमच्याबद्दल',    icon: Users },
-    { id: 'gallery',              path: '/gallery',               label: 'गॅलरी',          icon: ImageIcon },
-    { id: 'marriage-registration',path: '/marriage-registration', label: 'विवाह नोंदणी',   icon: Heart },
-    { id: 'member-registration',  path: '/member-registration',   label: 'सदस्य नोंदणी',  icon: UserPlus },
-    { id: 'contact',              path: '/contact',               label: 'संपर्क साधा',    icon: PhoneCall },
+    { id: 'home', path: '/', label: 'होम', icon: Home },
+    { id: 'about', path: '/about', label: 'आमच्याबद्दल', icon: Users },
+    { id: 'gallery', path: '/gallery', label: 'गॅलरी', icon: ImageIcon },
+    { id: 'marriage-registration', path: '/marriage-registration', label: 'विवाह नोंदणी', icon: Heart },
+    { id: 'member-registration', path: '/member-registration', label: 'सदस्य नोंदणी', icon: UserPlus },
+    { id: 'contact', path: '/contact', label: 'संपर्क साधा', icon: PhoneCall },
   ];
 
   const handleNavigate = (path: string) => {
@@ -48,9 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col w-[280px] bg-white border-r border-maroon/10 shadow-soft-lg transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-0 lg:shadow-none ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col w-[280px] h-screen bg-white border-r border-maroon/10 shadow-soft-lg transform transition-transform duration-300 lg:translate-x-0 lg:sticky lg:top-[72px] lg:h-[calc(100vh-72px)] lg:z-0 lg:shadow-none ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between p-4 border-b border-maroon/5 bg-cream/10">
@@ -79,17 +78,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {isAdmin && (
             <button
               onClick={() => handleNavigate('/admin/dashboard')}
-              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-card text-sm font-semibold transition-all duration-300 group ${
-                location.pathname.startsWith('/admin')
-                  ? 'bg-maroon text-white shadow-md shadow-maroon/20 translate-x-1'
-                  : 'text-maroon bg-maroon/5 border border-maroon/10 hover:bg-maroon hover:text-white hover:translate-x-1'
-              }`}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-card text-sm font-semibold transition-all duration-300 group ${location.pathname.startsWith('/admin')
+                ? 'bg-maroon text-white shadow-md shadow-maroon/20 translate-x-1'
+                : 'text-maroon bg-maroon/5 border border-maroon/10 hover:bg-maroon hover:text-white hover:translate-x-1'
+                }`}
             >
               <ShieldAlert
                 size={20}
-                className={`transition-colors duration-300 ${
-                  location.pathname.startsWith('/admin') ? 'text-white' : 'text-maroon group-hover:text-white'
-                }`}
+                className={`transition-colors duration-300 ${location.pathname.startsWith('/admin') ? 'text-white' : 'text-maroon group-hover:text-white'
+                  }`}
               />
               <span className="text-[13.5px] truncate">Admin Panel</span>
             </button>
@@ -104,17 +101,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <button
                 key={item.id}
                 onClick={() => handleNavigate(item.path)}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-card text-sm font-semibold transition-all duration-300 group ${
-                  isActive
-                    ? 'bg-saffron text-white shadow-md shadow-saffron/20 translate-x-1'
-                    : 'text-charcoal/80 hover:bg-cream-dark/40 hover:text-saffron hover:translate-x-1'
-                }`}
+                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-card text-sm font-semibold transition-all duration-300 group ${isActive
+                  ? 'bg-saffron text-white shadow-md shadow-saffron/20 translate-x-1'
+                  : 'text-charcoal/80 hover:bg-cream-dark/40 hover:text-saffron hover:translate-x-1'
+                  }`}
               >
                 <Icon
                   size={20}
-                  className={`transition-colors duration-300 ${
-                    isActive ? 'text-white' : 'text-maroon group-hover:text-saffron'
-                  }`}
+                  className={`transition-colors duration-300 ${isActive ? 'text-white' : 'text-maroon group-hover:text-saffron'
+                    }`}
                 />
                 <span className="text-[13.5px] truncate">{item.label}</span>
               </button>

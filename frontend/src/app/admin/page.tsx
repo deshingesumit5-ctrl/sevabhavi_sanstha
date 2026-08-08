@@ -43,10 +43,10 @@ export const AdminPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full pb-8">
          {/* Main Container */}
-      <section className="w-full px-4 py-6 max-w-7xl mx-auto">
+      <section className="w-full px-1.5 sm:px-4 py-4 md:py-6 max-w-7xl mx-auto">
 
         {/* Tab Panel Content */}
-        <div className="w-full bg-white rounded-card border border-maroon/5 shadow-soft p-6">
+        <div className="w-full bg-white rounded-card border border-maroon/5 shadow-soft p-2 sm:p-4 md:p-6">
           {/* Tab 2: Registered Members */}
           {activeTab === 'members' && (
             <AdminMembersPage />

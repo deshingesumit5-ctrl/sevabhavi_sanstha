@@ -66,9 +66,9 @@ export const GalleryPage: React.FC = () => {
             className="w-full min-h-[150px] sm:min-h-[220px]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-maroon/80 to-transparent flex items-end p-6 z-10">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-heading m-0">
+            {/* <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white font-heading m-0">
               फोटो गॅलरी 
-            </h1>
+            </h1> */}
           </div>
         </div>
       </section>

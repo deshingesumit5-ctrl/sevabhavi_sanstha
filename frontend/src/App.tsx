@@ -71,7 +71,7 @@ function App() {
   return (
     <Routes>
       {/* Admin login (standalone, no shared layout) */}
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/login" element={<AdminLogin />} />
 
       {/* Protected admin routes inside AdminLayout */}
       <Route path="/admin" element={<AdminGuard />}>

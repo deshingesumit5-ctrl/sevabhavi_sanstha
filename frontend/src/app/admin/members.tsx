@@ -102,7 +102,112 @@ const AdminMembersPage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-maroon/8 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* MOBILE: big-font stacked cards */}
+          <div className="md:hidden divide-y divide-charcoal/8">
+            {members.map((member) => (
+              <div key={member.id} className="p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-charcoal truncate">{member.fullName}</p>
+                    <p className="text-sm text-charcoal/60 font-semibold">{member.mobile}</p>
+                  </div>
+                  {getStatusBadge(member.approvalStatus)}
+                </div>
+
+                <div className="flex items-center gap-2 mt-2">
+                  {getMemberTypeBadge(member.memberType)}
+                  <span className="text-sm text-charcoal/60 font-semibold">{formatDate(member.createdAt)}</span>
+                </div>
+
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => setExpandedId(expandedId === member.id ? null : member.id)}
+                    className="flex-1 justify-center px-3 py-2.5 bg-blue-50 active:bg-blue-100 text-blue-700 rounded-xl text-sm font-bold flex items-center gap-1.5"
+                  >
+                    <Eye size={16} />
+                    अर्ज बघा
+                    {expandedId === member.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {member.approvalStatus === 'PENDING' && (
+                    <>
+                      <button
+                        onClick={() => handleStatusUpdate(member.id, 'APPROVED')}
+                        className="px-3 py-2.5 bg-green-600 active:bg-green-700 text-white rounded-xl"
+                      >
+                        <CheckCircle2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate(member.id, 'REJECTED')}
+                        className="px-3 py-2.5 bg-red-500 active:bg-red-600 text-white rounded-xl"
+                      >
+                        <XCircle size={18} />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {expandedId === member.id && (
+                  <div className="mt-4 bg-cream/40 rounded-xl p-4 space-y-4 text-sm">
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">वैयक्तिक माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">पूर्ण नाव</span><span className="font-bold text-charcoal/90">{member.fullName}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">जन्म तारीख</span><span className="font-bold text-charcoal/90">{formatDate(member.birthDate)}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">लिंग</span><span className="font-bold text-charcoal/90">{getGenderLabel(member.gender)}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">वैवाहिक स्थिती</span><span className="font-bold text-charcoal/90">{getMaritalLabel(member.maritalStatus)}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">संपर्क माहिती</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">मोबाईल</span><span className="font-bold text-charcoal/90">{member.mobile}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">ईमेल</span><span className="font-bold text-charcoal/90">{member.email || '-'}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">शिक्षण व व्यवसाय</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><span className="text-charcoal/50 font-semibold block">शिक्षण</span><span className="font-bold text-charcoal/90">{member.education}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">नोकरी / व्यवसाय</span><span className="font-bold text-charcoal/90">{member.occupation}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">सदस्यत्व प्रकार</span><span className="font-bold text-charcoal/90">{member.memberType === 'lifetime' ? 'आजीवन' : 'वार्षिक'}</span></div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">पत्ता</h5>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">सध्याचा पत्ता</span><span className="font-bold text-charcoal/90">{member.currentAddress}</span></div>
+                        <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">कायमचा पत्ता</span><span className="font-bold text-charcoal/90">{member.permanentAddress}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">राज्य</span><span className="font-bold text-charcoal/90">{member.state?.nameMr || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">जिल्हा</span><span className="font-bold text-charcoal/90">{member.district?.nameMr || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">तालुका</span><span className="font-bold text-charcoal/90">{member.taluka?.nameMr || '-'}</span></div>
+                        <div><span className="text-charcoal/50 font-semibold block">पिनकोड</span><span className="font-bold text-charcoal/90">{member.pincode}</span></div>
+                      </div>
+                    </div>
+
+                    {(member.expectations || member.message) && (
+                      <div>
+                        <h5 className="text-sm font-bold text-maroon font-heading mb-2 border-b border-maroon/10 pb-1">अपेक्षा व संदेश</h5>
+                        <div className="space-y-3">
+                          {member.expectations && (
+                            <div><span className="text-charcoal/50 font-semibold block">अपेक्षा</span><span className="font-bold text-charcoal/90">{member.expectations}</span></div>
+                          )}
+                          {member.message && (
+                            <div><span className="text-charcoal/50 font-semibold block">संदेश</span><span className="font-bold text-charcoal/90">{member.message}</span></div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: original table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-cream/70 to-cream/40 border-b-2 border-maroon/15">
