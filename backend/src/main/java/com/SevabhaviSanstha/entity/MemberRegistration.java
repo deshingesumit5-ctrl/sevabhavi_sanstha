@@ -22,6 +22,9 @@ public class MemberRegistration {
     @Column(name = "gender", nullable = false, length = 10)
     private String gender;
 
+    @Column(name = "blood_group", length = 10)
+    private String bloodGroup;
+
     @Column(name = "marital_status", nullable = false, length = 20)
     private String maritalStatus;
 

@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Users,
   Heart,
+  HelpCircle,
   Image as ImageIcon,
   Newspaper,
   CreditCard,
@@ -25,6 +26,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard', label: 'डॅशबोर्ड', icon: LayoutDashboard, path: '/admin/dashboard' },
   { id: 'members', label: 'सदस्य नोंदणी अर्ज', icon: Users, path: '/admin/members' },
   { id: 'marriage', label: 'विवाह नोंदणी अर्ज', icon: Heart, path: '/admin/marriage-registrations' },
+  { id: 'inquiries', label: 'चौकशी अर्ज', icon: HelpCircle, path: '/admin/inquiries' },
   { id: 'gallery', label: 'गॅलरी', icon: ImageIcon, path: '/admin/gallery-manage' },
   { id: 'news', label: 'बातम्या', icon: Newspaper, path: '/admin/news' },
   { id: 'payments', label: 'पेमेंट्स', icon: CreditCard, path: '/admin/payments' },
@@ -32,7 +34,7 @@ const navItems: NavItem[] = [
 ];
 
 const AdminLayout: React.FC = () => {
-  const { isAdmin, adminUser, logout } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -65,17 +67,14 @@ const AdminLayout: React.FC = () => {
         {/* Sidebar header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-charcoal/8">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-saffron to-maroon flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-white font-heading font-extrabold text-xs">दा</span>
-            </div>
             <div>
-              <p className="text-maroon font-bold text-sm font-heading leading-tight">Admin Panel</p>
+              <p className="text-saffron-dark font-bold text-sm leading-tight" style={{ fontFamily: "'Baloo 2', sans-serif" }}>एडमिन पॅनेल</p>
               <p className="text-charcoal/40 text-[9px] font-semibold">दापोली मडणगड सेवाभावी संस्था, पुणे</p>
             </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-charcoal/40 hover:text-maroon transition-colors p-1"
+            className="lg:hidden text-charcoal/40 hover:text-saffron transition-colors p-1"
           >
             <X size={18} />
           </button>
@@ -94,7 +93,7 @@ const AdminLayout: React.FC = () => {
                 onClick={() => { navigate(item.path); setSidebarOpen(false); }}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive
                   ? 'bg-saffron text-white shadow-lg shadow-saffron/20'
-                  : 'text-charcoal/60 hover:text-maroon hover:bg-cream'
+                  : 'text-charcoal/60 hover:text-saffron hover:bg-cream'
                   }`}
               >
                 <Icon size={17} className={isActive ? 'text-white' : 'text-charcoal/40'} />
@@ -129,8 +128,8 @@ const AdminLayout: React.FC = () => {
               <Menu size={20} />
             </button>
             <div>
-              <h1 className="text-sm font-bold text-charcoal font-heading">
-                {navItems.find(n => n.path === location.pathname)?.label ?? 'Admin Panel'}
+              <h1 className="text-sm font-bold text-charcoal" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                {navItems.find(n => n.path === location.pathname)?.label ?? 'एडमिन पॅनेल'}
               </h1>
               <p className="text-[10px] text-charcoal/40 font-semibold">
                 दापोली मंडणगड सेवाभावी संस्था, पुणे
@@ -141,7 +140,7 @@ const AdminLayout: React.FC = () => {
           {/* Public site link */}
           <button
             onClick={() => navigate('/')}
-            className="text-xs font-bold text-maroon/60 hover:text-saffron transition-colors border border-maroon/15 hover:border-saffron px-3 py-1.5 rounded-full"
+            className="text-xs font-bold text-saffron hover:text-saffron-dark transition-colors border border-saffron/20 hover:border-saffron px-3 py-1.5 rounded-full"
           >
             ← वेबसाइट पाहा
           </button>

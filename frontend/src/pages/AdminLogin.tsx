@@ -38,49 +38,48 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] flex flex-col items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-[#FFF8F0] flex flex-col items-center justify-center px-4 py-8 sm:py-12">
 
-      {/* ── NGO Logo + Name ─────────────────────────────────────── */}
-      <div className="flex flex-col items-center mb-8">
-        {/* Avatar circle */}
-        {/* <div className="w-16 h-16 rounded-full bg-gradient-to-br from-saffron to-maroon flex items-center justify-center shadow-lg mb-3">
-          <span className="text-white font-heading font-extrabold text-2xl">से</span>
-        </div> */}
+      {/* ── Unified Single Login Section ───────────────────────────── */}
+      <div className="w-full max-w-md bg-white rounded-2xl border border-maroon/8 shadow-xl shadow-maroon/8 px-6 sm:px-8 py-8">
 
-        <h1 className="text-lg sm:text-xl font-extrabold font-heading text-maroon text-center leading-tight">
-          दापोली मडणगड सेवाभावी संस्था, पुणे
-        </h1>
-
-        {/* Tagline */}
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="h-px w-6 bg-saffron" />
-          <span className="text-[10px] sm:text-xs font-bold text-saffron tracking-widest uppercase">
-            जन सेवा हीच ईश्वर सेवा
-          </span>
-          <span className="h-px w-6 bg-saffron" />
+        {/* Logo */}
+        <div className="flex justify-center mb-3">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center p-1">
+            <img
+              src="/logo.png"
+              alt="दापोली मंडणगड सेवाभावी संस्था, पुणे"
+              className="w-full h-full object-contain"
+            />
+          </div>
         </div>
 
-        {/* Decorative dots */}
-        <div className="flex gap-1.5 mt-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-saffron" />
-          <span className="w-1.5 h-1.5 rounded-full bg-maroon" />
-          <span className="w-1.5 h-1.5 rounded-full bg-saffron" />
-        </div>
-      </div>
+        {/* NGO Name + Tagline */}
+        <div className="flex flex-col items-center text-center mb-4">
+          <h1 className="text-lg sm:text-xl font-extrabold text-maroon leading-tight" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+            दापोली मंडणगड सेवाभावी संस्था, पुणे
+          </h1>
 
-      {/* ── Login Card ──────────────────────────────────────────── */}
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-maroon/8 shadow-xl shadow-maroon/8 px-6 py-7">
+          {/* Tagline */}
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="h-px w-5 bg-saffron" />
+            <span className="text-[10px] sm:text-xs font-bold text-saffron tracking-widest uppercase">
+              जन सेवा हीच ईश्वर सेवा
+            </span>
+            <span className="h-px w-5 bg-saffron" />
+          </div>
+        </div>
 
         {/* Admin Panel Badge */}
-        <div className="flex justify-center mb-5">
+        <div className="flex justify-center mb-3">
           <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-cream border border-saffron/30 text-[11px] font-bold text-maroon shadow-sm">
             <ShieldCheck size={13} className="text-saffron" />
-            Admin Panel
+            एडमिन पॅनेल
           </span>
         </div>
 
         {/* Titles */}
-        <h2 className="text-2xl font-extrabold font-heading text-charcoal text-center mb-1">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal text-center mb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
           प्रशासक लॉगिन
         </h2>
         <p className="text-[11px] text-charcoal/50 font-semibold text-center mb-6">
@@ -103,7 +102,6 @@ const AdminLogin: React.FC = () => {
                 type="text"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                placeholder="admin@sevabhavisanstha.org"
                 autoComplete="username"
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
               />
@@ -124,7 +122,6 @@ const AdminLogin: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
                 autoComplete="current-password"
                 className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
               />
@@ -187,21 +184,12 @@ const AdminLogin: React.FC = () => {
             )}
           </button>
         </form>
-
-        {/* Security note
-        <div className="mt-5 pt-4 border-t border-charcoal/8 flex items-start gap-2">
-          <Lock size={13} className="text-charcoal/30 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-charcoal/40 font-semibold leading-relaxed">
-            सुरक्षा सूचना: हे पेज केवळ अधिकृत प्रशासकांसाठी आहे. अनधिकृत प्रवेशाचा प्रयत्न केल्यास कायदेशीर कारवाई होऊ शकते.
-          </p>
-        </div>
-        */}
       </div>
 
       {/* Back to home */}
       <button
         onClick={() => navigate('/')}
-        className="mt-6 text-xs font-bold text-maroon/60 hover:text-saffron transition-colors underline underline-offset-2"
+        className="mt-5 text-xs font-bold text-maroon/60 hover:text-saffron transition-colors underline underline-offset-2"
       >
         ← मुख्य वेबसाइटवर परत जा
       </button>

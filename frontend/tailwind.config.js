@@ -26,8 +26,11 @@ export default {
         }
       },
       fontFamily: {
-        heading: ['"Baloo 2"', 'Mukta', 'sans-serif'],
-        body: ['Mukta', '"Noto Sans Devanagari"', 'sans-serif'],
+        sans: ['var(--font-primary)', 'sans-serif'],
+        heading: ["'Baloo 2'", 'sans-serif'],
+        body: ["'Noto Sans Devanagari'", "'Baloo 2'", 'sans-serif'],
+        quicksand: ['var(--font-quicksand)', 'serif'],
+        caveat: ['var(--font-caveat)', 'serif'],
       },
       borderRadius: {
         'card': '16px',

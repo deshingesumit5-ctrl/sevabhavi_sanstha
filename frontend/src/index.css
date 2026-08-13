@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Mukta:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Mukta:wght@300;400;500;600;700;800&family=Noto+Sans+Devanagari:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-primary: "Manrope", "Noto Sans Devanagari", sans-serif;
+  --font-quicksand: "Quicksand", serif;
+  --font-caveat: "Caveat", serif;
+}
 
 @tailwind base;
 @tailwind components;
@@ -27,7 +33,17 @@
   @apply bg-saffron/40 rounded-full hover:bg-saffron/60 transition-colors;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
 }
+

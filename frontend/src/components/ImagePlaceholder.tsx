@@ -7,6 +7,8 @@ interface ImagePlaceholderProps {
   aspectRatio?: string;
   label?: string;
   onClick?: () => void;
+  onFileSelect?: (file: File) => void;
+  forceInteractive?: boolean;
 }
 
 export const ImagePlaceholder: React.FC<ImagePlaceholderProps> = ({
@@ -14,12 +16,14 @@ export const ImagePlaceholder: React.FC<ImagePlaceholderProps> = ({
   aspectRatio = 'aspect-video',
   label = 'फोटो अपलोड करा',
   onClick,
+  onFileSelect,
+  forceInteractive = false,
 }) => {
   const { isAdmin } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
-    if (!isAdmin) return;
+    if (!isAdmin && !forceInteractive) return;
     if (onClick) {
       onClick();
     } else {
@@ -28,8 +32,10 @@ export const ImagePlaceholder: React.FC<ImagePlaceholderProps> = ({
     }
   };
 
-  // ── Admin: interactive upload box ──────────────────────────────
-  if (isAdmin) {
+  const isInteractive = isAdmin || forceInteractive;
+
+  // ── Admin/Interactive: interactive upload box ──────────────────────────────
+  if (isInteractive) {
     return (
       <>
         <input
@@ -39,7 +45,14 @@ export const ImagePlaceholder: React.FC<ImagePlaceholderProps> = ({
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) alert(`फाइल निवडली: ${file.name} (अपलोड API अद्याप जोडलेले नाही)`);
+            if (file) {
+              if (onFileSelect) {
+                onFileSelect(file);
+              } else {
+                alert(`फाइल निवडली: ${file.name} (अपलोड API अद्याप जोडलेले नाही)`);
+              }
+            }
+            e.target.value = '';
           }}
         />
         <div

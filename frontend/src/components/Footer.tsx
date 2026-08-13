@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   const navigate = useNavigate();
@@ -13,22 +13,26 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="w-full bg-maroon text-cream border-t-4 border-saffron pt-10 pb-20 lg:pb-10 px-6">
+    <footer className="w-full bg-[#FFF8F0] text-charcoal border-t-2 border-saffron/30 pt-10 pb-20 lg:pb-10 px-6 shadow-xs">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Column 1: About / Motto */}
         <div className="flex flex-col gap-3">
-          <h3 className="text-xl font-bold font-heading text-saffron">
+          <h3 className="text-xl font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
             दापोली मंडणगड सेवाभावी संस्था
           </h3>
-          {/* <p className="text-sm text-cream/80 leading-relaxed font-body">
-            आमची संस्था सामाजिक, शैक्षणिक, आरोग्य, पर्यावरण आणि समाज हिताच्या विविध उपक्रमांसाठी कार्यरत आहे. "जन सेवा हीच ईश्वर सेवा" या ब्रीदवाक्याने प्रेरित होऊन आम्ही सेवाकार्य करत आहोत.
-          </p> */}
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className="h-[1px] w-4 bg-saffron"></span>
+            <span className="text-xs font-semibold text-saffron tracking-widest uppercase">
+              जन सेवा हीच ईश्वर सेवा
+            </span>
+            <span className="h-[1px] w-4 bg-saffron"></span>
+          </div>
         </div>
 
         {/* Column 2: Navigation Links */}
         <div className="flex flex-col gap-3">
-          <h3 className="text-lg font-bold font-heading text-saffron">
+          <h3 className="text-lg font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
             महत्वाच्या लिंक्स
           </h3>
           <div className="flex flex-wrap md:flex-col gap-3 text-sm font-semibold">
@@ -36,7 +40,7 @@ export const Footer: React.FC = () => {
               <button
                 key={link.path}
                 onClick={() => navigate(link.path)}
-                className="hover:text-saffron text-left transition-colors duration-200"
+                className="hover:text-saffron text-left text-charcoal/80 transition-colors duration-200"
               >
                 {link.label}
               </button>
@@ -46,25 +50,15 @@ export const Footer: React.FC = () => {
 
         {/* Column 3: Contact info */}
         <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-bold font-heading text-saffron">
+          <h3 className="text-lg font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
             संपर्क तपशील
           </h3>
-          <ul className="space-y-3.5 text-sm font-body text-cream/90">
-            {/* <li className="flex items-start gap-3">
-              <MapPin size={18} className="text-saffron shrink-0 mt-0.5" />
-              <span>दापोली मंडणगड सेवाभावी संस्था, पुणे कार्यालय, सदाशिव पेठ, पुणे - ४११०३०.</span>
-            </li> */}
+          <ul className="space-y-3.5 text-sm font-body text-charcoal/80">
             <li className="flex items-center gap-3">
               <Phone size={18} className="text-saffron shrink-0" />
-              {/* <a href="tel:+919876543210" className="hover:text-saffron transition-colors">
-                +91 ९८७६५ ४३२१० / ९८२३४ ५६७८९
-              </a> */}
             </li>
             <li className="flex items-center gap-3">
               <Mail size={18} className="text-saffron shrink-0" />
-              {/* <a href="mailto:info@dapolimandangadngo.org" className="hover:text-saffron transition-colors">
-                info@dapolimandangadngo.org
-              </a> */}
             </li>
           </ul>
         </div>
@@ -72,10 +66,10 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Border Separator */}
-      <div className="max-w-6xl mx-auto border-t border-cream/10 my-8"></div>
+      <div className="max-w-6xl mx-auto border-t border-charcoal/10 my-8"></div>
 
       {/* Copyright row */}
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between text-center gap-4 text-xs text-cream/60 font-body">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between text-center gap-4 text-xs text-charcoal/60 font-body">
         <p>© २०२६ दापोली मडणगड सेवाभावी संस्था, पुणे. सर्व हक्क सुरक्षित.</p>
       </div>
     </footer>

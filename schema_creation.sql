@@ -102,3 +102,22 @@ CREATE TABLE marriage_registrations (
     FOREIGN KEY (district_id) REFERENCES districts(id)
 );
 GO
+
+/* ============================================================
+   3. INQUIRIES / CONTACT FORM MESSAGES TABLE
+   ============================================================ */
+IF OBJECT_ID('inquiries', 'U') IS NOT NULL 
+    DROP TABLE inquiries;
+GO
+
+CREATE TABLE inquiries (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name NVARCHAR(255) NOT NULL,
+    mobile VARCHAR(20) NOT NULL,
+    email VARCHAR(100) NULL,
+    message NVARCHAR(2000) NOT NULL,
+    status VARCHAR(50) DEFAULT 'NEW',
+    created_at DATETIME DEFAULT GETDATE()
+);
+GO
+

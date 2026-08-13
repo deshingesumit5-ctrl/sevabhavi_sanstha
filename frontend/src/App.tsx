@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -8,12 +8,15 @@ import AdminGuard from './components/AdminGuard';
 import AdminLayout from './layouts/AdminLayout';
 
 // Public pages
-import HomePage from './app/home';
-import AboutPage from './app/about/page';
+// Home page moved under app/ directory to match other page imports
+import HomePage from './app/home/home';
+import AboutPage from './app/about/about';
 import GalleryPage from './app/gallery/gallery';
 import MarriageRegistrationPage from './app/marriage-registration/marriage_registration';
 import MemberRegistrationPage from './app/member-registration/member-registration';
 import ContactPage from './app/contact/contact';
+import ActivitiesPage from './app/activities/activities';
+import UpdatesPage from './app/updates/updates';
 
 // Admin pages
 import AdminLogin from './pages/AdminLogin';
@@ -42,6 +45,8 @@ function PublicLayout() {
             <Routes>
               <Route index element={<HomePage />} />
               <Route path="about" element={<AboutPage />} />
+              <Route path="activities" element={<ActivitiesPage />} />
+              <Route path="updates" element={<UpdatesPage />} />
               <Route path="gallery" element={<GalleryPage />} />
               <Route path="marriage-registration" element={<MarriageRegistrationPage />} />
               <Route path="member-registration" element={<MemberRegistrationPage />} />
@@ -62,6 +67,16 @@ function PublicLayout() {
 function App() {
   const location = useLocation();
 
+  useEffect(() => {
+    if (!document.getElementById('baloo2-font-link')) {
+      const link = document.createElement('link');
+      link.id = 'baloo2-font-link';
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap';
+      document.head.appendChild(link);
+    }
+  }, []);
+
   // Scroll to top on route change (public pages)
   const isAdminRoute = location.pathname.startsWith('/admin');
   if (!isAdminRoute) {
@@ -79,6 +94,7 @@ function App() {
           <Route path="dashboard" element={<AdminPage />} />
           <Route path="members" element={<AdminPage />} />
           <Route path="marriage-registrations" element={<AdminPage />} />
+          <Route path="inquiries" element={<AdminPage />} />
           <Route path="gallery-manage" element={<AdminPage />} />
           <Route path="news" element={<AdminPage />} />
           <Route path="payments" element={<AdminPage />} />

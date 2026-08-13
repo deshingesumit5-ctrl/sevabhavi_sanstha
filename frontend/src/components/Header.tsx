@@ -33,8 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Center: NGO Name & Tagline */}
       <div className="flex flex-col items-center text-center px-2 flex-1">
-        <h1 className="text-[17px] sm:text-xl md:text-2xl font-bold font-heading text-maroon leading-tight m-0 tracking-wide">
-          दापोली मडणगड सेवाभावी संस्था, पुणे
+        <h1 className="text-[17px] sm:text-xl md:text-2xl font-bold text-maroon leading-tight m-0 tracking-wide" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+          दापोली मंडणगड सेवाभावी संस्था, पुणे
         </h1>
         <div className="flex items-center gap-1.5 mt-0.5">
           <span className="h-[1px] w-4 bg-saffron"></span>
@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={handleLogout}
             title="लॉगआउट"
-            className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-full bg-maroon/8 hover:bg-maroon text-maroon hover:text-white border border-maroon/20 hover:border-maroon text-[11px] font-bold transition-all duration-300"
+            className="flex items-center gap-1.5 ml-1 px-3 py-1.5 rounded-full bg-saffron/10 hover:bg-saffron text-saffron hover:text-white border border-saffron/20 hover:border-saffron text-[11px] font-bold transition-all duration-300"
           >
             <LogOut size={13} />
             <span className="hidden sm:inline">लॉगआउट</span>
