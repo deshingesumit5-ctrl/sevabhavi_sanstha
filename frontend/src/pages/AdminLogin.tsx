@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, KeyRound, User, ShieldCheck, AlertCircle } from 'lucide-react';
+import { api } from '../services/api';
+import { Eye, EyeOff, KeyRound, User, ShieldCheck, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const { isAdmin, login } = useAuth();
   const navigate = useNavigate();
 
+  // Login form states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Password Reset states
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   // Already logged in → straight to dashboard
   if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
@@ -20,6 +29,7 @@ const AdminLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (!username.trim() || !password.trim()) {
       setError('कृपया युझरनेम आणि पासवर्ड भरा.');
@@ -27,13 +37,59 @@ const AdminLogin: React.FC = () => {
     }
 
     setIsLoading(true);
-    const ok = await login(username.trim(), password.trim());
+    const errMsg = await login(username.trim(), password.trim());
     setIsLoading(false);
 
-    if (ok) {
+    if (!errMsg) {
       navigate('/admin/dashboard', { replace: true });
     } else {
-      setError('युझरनेम किंवा पासवर्ड चुकीचा आहे. पुन्हा प्रयत्न करा.');
+      setError(errMsg);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!resetEmail.trim() || !newPassword.trim() || !confirmPassword.trim()) {
+      setError('कृपया सर्व रकाने भरा.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('पासवर्ड किमान ६ अक्षरी असणे आवश्यक आहे.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError('नवीन पासवर्ड आणि पासवर्डची पुष्टी जुळत नाही.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await api.resetPassword(resetEmail.trim(), newPassword.trim());
+      setIsLoading(false);
+      setSuccess(res.message || 'पासवर्ड यशस्वीरित्या बदलला आहे! नवीन पासवर्डसह लॉगिन करा.');
+      
+      // Keep resetEmail value to prefill the login field
+      const prefillEmail = resetEmail.trim();
+
+      // Clear fields
+      setResetEmail('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      // Auto redirect after 3 seconds
+      setTimeout(() => {
+        setUsername(prefillEmail);
+        setIsResettingPassword(false);
+        setSuccess('');
+      }, 3000);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err.message || 'पासवर्ड बदल अयशस्वी. कृपया पुन्हा प्रयत्न करा.');
     }
   };
 
@@ -78,112 +134,241 @@ const AdminLogin: React.FC = () => {
           </span>
         </div>
 
-        {/* Titles */}
-        <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal text-center mb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
-          प्रशासक लॉगिन
-        </h2>
-        <p className="text-[11px] text-charcoal/50 font-semibold text-center mb-6">
-          युझरनेम आणि पासवर्ड टाकून लॉगिन करा
-        </p>
+        {/* Dynamic Rendering: Login Form OR Reset Password Form */}
+        {!isResettingPassword ? (
+          <>
+            {/* Titles */}
+            <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal text-center mb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+              प्रशासक लॉगिन
+            </h2>
+            <p className="text-[11px] text-charcoal/50 font-semibold text-center mb-6">
+              युझरनेम आणि पासवर्ड टाकून लॉगिन करा
+            </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* Username field */}
-          <div>
-            <label htmlFor="admin-username" className="block text-xs font-bold text-charcoal/70 mb-1.5">
-              युझरनेम / ईमेल आयडी
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
-                <User size={16} />
-              </span>
-              <input
-                id="admin-username"
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                autoComplete="username"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
-              />
-            </div>
-          </div>
+              {/* Username field */}
+              <div>
+                <label htmlFor="admin-username" className="block text-xs font-bold text-charcoal/70 mb-1.5">
+                  युझरनेम / ईमेल आयडी
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+                    <User size={16} />
+                  </span>
+                  <input
+                    id="admin-username"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    autoComplete="username"
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
+                  />
+                </div>
+              </div>
 
-          {/* Password field */}
-          <div>
-            <label htmlFor="admin-password" className="block text-xs font-bold text-charcoal/70 mb-1.5">
-              पासवर्ड
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
-                <KeyRound size={16} />
-              </span>
-              <input
-                id="admin-password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
-                className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
-              />
+              {/* Password field */}
+              <div>
+                <label htmlFor="admin-password" className="block text-xs font-bold text-charcoal/70 mb-1.5">
+                  पासवर्ड
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+                    <KeyRound size={16} />
+                  </span>
+                  <input
+                    id="admin-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-saffron transition-colors"
+                    aria-label={showPassword ? 'पासवर्ड लपवा' : 'पासवर्ड दाखवा'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember me + Forgot */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-charcoal/20 text-saffron focus:ring-saffron cursor-pointer"
+                  />
+                  <span className="text-[11px] font-semibold text-charcoal/60">मला लक्षात ठेवा</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError('');
+                    setSuccess('');
+                    setIsResettingPassword(true);
+                  }}
+                  className="text-[11px] font-bold text-saffron hover:text-maroon transition-colors"
+                >
+                  पासवर्ड विसरलात?
+                </button>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                  <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-[11px] font-semibold text-red-600 leading-snug">{error}</p>
+                </div>
+              )}
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-saffron to-[#D4631A] hover:from-[#D4631A] hover:to-saffron text-white font-extrabold text-sm shadow-lg shadow-saffron/30 hover:shadow-xl hover:shadow-saffron/40 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span>लॉगिन होत आहे...</span>
+                  </>
+                ) : (
+                  <span>लॉगिन करा →</span>
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            {/* Titles for Reset Password */}
+            <h2 className="text-xl sm:text-2xl font-extrabold text-charcoal text-center mb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+              पासवर्ड बदला
+            </h2>
+            <p className="text-[11px] text-charcoal/50 font-semibold text-center mb-6">
+              तुमचा ईमेल आणि नवीन पासवर्ड टाकून जतन करा
+            </p>
+
+            <form onSubmit={handleResetPassword} className="space-y-4">
+
+              {/* Email field */}
+              <div>
+                <label htmlFor="reset-email" className="block text-xs font-bold text-charcoal/70 mb-1.5">
+                  ईमेल आयडी
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+                    <User size={16} />
+                  </span>
+                  <input
+                    id="reset-email"
+                    type="email"
+                    placeholder="admin@gmail.com"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
+                  />
+                </div>
+              </div>
+
+              {/* New Password field */}
+              <div>
+                <label htmlFor="new-password" className="block text-xs font-bold text-charcoal/70 mb-1.5">
+                  नवीन पासवर्ड
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+                    <KeyRound size={16} />
+                  </span>
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
+                  />
+                </div>
+              </div>
+
+              {/* Confirm New Password field */}
+              <div>
+                <label htmlFor="confirm-password" className="block text-xs font-bold text-charcoal/70 mb-1.5">
+                  नवीन पासवर्डची पुष्टी करा
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/40">
+                    <KeyRound size={16} />
+                  </span>
+                  <input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-charcoal/15 bg-cream/30 focus:border-saffron focus:ring-2 focus:ring-saffron/20 text-sm outline-none transition-all placeholder:text-charcoal/30"
+                  />
+                </div>
+              </div>
+
+              {/* Success */}
+              {success && (
+                <div className="flex items-start gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+                  <CheckCircle size={14} className="text-green-500 mt-0.5 shrink-0" />
+                  <p className="text-[11px] font-semibold text-green-600 leading-snug">{success}</p>
+                </div>
+              )}
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                  <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-[11px] font-semibold text-red-600 leading-snug">{error}</p>
+                </div>
+              )}
+
+              {/* Save password button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-saffron to-[#D4631A] hover:from-[#D4631A] hover:to-saffron text-white font-extrabold text-sm shadow-lg shadow-saffron/30 hover:shadow-xl hover:shadow-saffron/40 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    <span>पासवर्ड जतन केला जात आहे...</span>
+                  </>
+                ) : (
+                  <span>पासवर्ड जतन करा</span>
+                )}
+              </button>
+
+              {/* Back to login */}
               <button
                 type="button"
-                tabIndex={-1}
-                onClick={() => setShowPassword(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-saffron transition-colors"
-                aria-label={showPassword ? 'पासवर्ड लपवा' : 'पासवर्ड दाखवा'}
+                onClick={() => {
+                  setError('');
+                  setSuccess('');
+                  setIsResettingPassword(false);
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-charcoal/15 hover:bg-cream/10 text-charcoal/70 hover:text-charcoal font-bold text-xs transition-all duration-200 active:scale-[0.99]"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                <ArrowLeft size={13} />
+                <span>लॉगिनवर परत जा</span>
               </button>
-            </div>
-          </div>
-
-          {/* Remember me + Forgot */}
-          <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-charcoal/20 text-saffron focus:ring-saffron cursor-pointer"
-              />
-              <span className="text-[11px] font-semibold text-charcoal/60">मला लक्षात ठेवा</span>
-            </label>
-            <button
-              type="button"
-              onClick={() => alert('पासवर्ड रिसेट लिंक पाठवण्यात येईल.')}
-              className="text-[11px] font-bold text-saffron hover:text-maroon transition-colors"
-            >
-              पासवर्ड विसरलात?
-            </button>
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
-              <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-              <p className="text-[11px] font-semibold text-red-600 leading-snug">{error}</p>
-            </div>
-          )}
-
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-saffron to-[#D4631A] hover:from-[#D4631A] hover:to-saffron text-white font-extrabold text-sm shadow-lg shadow-saffron/30 hover:shadow-xl hover:shadow-saffron/40 transition-all duration-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <>
-                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-                <span>लॉगिन होत आहे...</span>
-              </>
-            ) : (
-              <span>लॉगिन करा →</span>
-            )}
-          </button>
-        </form>
+            </form>
+          </>
+        )}
       </div>
 
       {/* Back to home */}

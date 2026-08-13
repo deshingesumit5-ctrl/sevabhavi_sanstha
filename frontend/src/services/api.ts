@@ -1,14 +1,16 @@
-const BASE_URL = `http://${window.location.hostname}:8080/api`;
+const BASE_URL = `http://192.168.1.13:8080/api`;
 
 const getAdminHeaders = (): Record<string, string> => {
   try {
     const stored = localStorage.getItem('sevabhavi_admin_session');
     if (stored) {
       const parsed = JSON.parse(stored);
-      return { 'X-Admin-User': parsed.name || 'admin' };
+      if (parsed.token) {
+        return { 'Authorization': `Bearer ${parsed.token}` };
+      }
     }
   } catch { }
-  return { 'X-Admin-User': 'admin' };
+  return {};
 };
 
 
@@ -235,6 +237,29 @@ const saveLocalInquiries = (inquiries: InquiryData[]) => {
 };
 
 export const api = {
+  // Auth APIs
+  login: async (email: string, password: string): Promise<any> => {
+    const res = await fetch(`${BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'लॉगिन अयशस्वी झाले.');
+    return data;
+  },
+
+  resetPassword: async (email: string, newPassword: string): Promise<any> => {
+    const res = await fetch(`${BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, newPassword }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'पासवर्ड बदल अयशस्वी.');
+    return data;
+  },
+
   // Lookups
   getStates: async (): Promise<State[]> => {
     const res = await fetch(`${BASE_URL}/lookups/states`);

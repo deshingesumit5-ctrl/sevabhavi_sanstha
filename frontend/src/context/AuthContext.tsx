@@ -1,15 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface AdminUser {
   name: string;
   role: string;
+  token?: string;
+  email?: string;
 }
 
 interface AuthContextType {
   isAdmin: boolean;
   adminUser: AdminUser | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<string | null>; // Returns error message or null if success
   logout: () => void;
 }
 
@@ -37,19 +40,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  /** Mock login — accepts any non-empty username + password */
-  const login = async (username: string, password: string): Promise<boolean> => {
-    if (!username.trim() || !password.trim()) return false;
+  /** Real login — calls backend auth API */
+  const login = async (email: string, password: string): Promise<string | null> => {
+    if (!email.trim() || !password.trim()) {
+      return 'कृपया ईमेल आणि पासवर्ड भरा.';
+    }
 
-    const user: AdminUser = {
-      name: username.includes('@') ? username.split('@')[0] : username,
-      role: 'प्रशासक',
-    };
+    try {
+      const data = await api.login(email.trim(), password.trim());
+      const user: AdminUser = {
+        name: data.name || email.split('@')[0],
+        role: data.role || 'प्रशासक',
+        token: data.token,
+        email: data.email || email,
+      };
 
-    setIsAdmin(true);
-    setAdminUser(user);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    return true;
+      setIsAdmin(true);
+      setAdminUser(user);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+      return null; // No error = success
+    } catch (err: any) {
+      return err.message || 'युझरनेम किंवा पासवर्ड चुकीचा आहे. पुन्हा प्रयत्न करा.';
+    }
   };
 
   const logout = () => {

@@ -1,4 +1,4 @@
-const API_BASE = `http://${window.location.hostname}:8080/api/gallery`;
+const API_BASE = `http://192.168.1.13:8080/api/gallery`;
 
 export interface GalleryImage {
   id: number;
@@ -104,5 +104,5 @@ export async function deleteImage(id: number): Promise<void> {
 
 // backend serves files at /uploads/... — this builds the full URL for <img src>
 export function imageUrl(path: string): string {
-  return path.startsWith("http") ? path : `http://${window.location.hostname}:8080${path}`;
+  return path.startsWith("http") ? path : `http://192.168.1.13:8080${path}`;
 }
