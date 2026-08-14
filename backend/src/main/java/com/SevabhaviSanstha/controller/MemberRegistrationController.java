@@ -4,6 +4,7 @@ import com.SevabhaviSanstha.entity.MemberRegistration;
 import com.SevabhaviSanstha.service.MemberRegistrationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -21,11 +22,13 @@ public class MemberRegistrationController {
     }
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<MemberRegistration>> getAllRegistrations() {
         return ResponseEntity.ok(memberRegistrationService.getAllRegistrations());
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MemberRegistration> updateStatus(
             @PathVariable Integer id,
             @RequestParam String status) {

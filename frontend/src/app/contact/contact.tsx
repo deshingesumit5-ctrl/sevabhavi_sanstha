@@ -123,9 +123,9 @@ export const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full pb-8">
+    <div className="flex flex-col w-full">
       {/* 1. Header Banner */}
-      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4">
+      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4 section-gap-top">
         <div className="relative rounded-card-lg overflow-hidden shadow-soft">
           {heroImage ? (
             <>
@@ -178,7 +178,7 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* 2. Main Grid */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
           {/* Left Column: Details & Map */}

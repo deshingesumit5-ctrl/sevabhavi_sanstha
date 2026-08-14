@@ -15,6 +15,7 @@ export interface MemberFormErrors {
   talukaId?: string;
   pincode?: string;
   declaration?: string;
+  screenshot?: string;
 }
 
 export const validateMobile = (mobile: string): boolean => {

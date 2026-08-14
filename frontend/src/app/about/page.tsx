@@ -3,13 +3,13 @@ import ImagePlaceholder from '../../components/ImagePlaceholder';
 import { Landmark, Compass, Award, ShieldAlert } from 'lucide-react';
 
 export const AboutPage: React.FC = () => {
-  const committeeMembers = [
+  const committeeMembers: any[] = [
   ];
 
   return (
-    <div className="flex flex-col w-full pb-8">
+    <div className="flex flex-col w-full">
       {/* 1. Hero Banner */}
-      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4">
+      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4 section-gap-top">
         <div className="relative rounded-card-lg overflow-hidden shadow-soft">
           <ImagePlaceholder 
             aspectRatio="aspect-[16/9] md:aspect-[21/9]" 
@@ -23,7 +23,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 2. NGO Info: History, Vision, Mission */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto space-y-8">
+      <section className="w-full px-4 max-w-6xl mx-auto space-y-8 section-gap-top">
         
         {/* History Card */}
         <div className="bg-white rounded-card-lg border border-maroon/5 shadow-soft p-6 md:p-8 flex flex-col md:flex-row gap-6 items-start">
@@ -78,7 +78,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 3. Committee Members List */}
-      <section className="w-full px-4 py-8 bg-cream/30 border-y border-maroon/5">
+      <section className="w-full px-4 py-8 bg-cream/30 border-y border-maroon/5 section-gap-top">
         <div className="max-w-6xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-8">
             <h2 className="text-2xl md:text-3xl font-bold font-heading text-maroon inline-block border-b-2 border-saffron pb-2">

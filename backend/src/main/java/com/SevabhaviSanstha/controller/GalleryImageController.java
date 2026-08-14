@@ -3,6 +3,8 @@ package com.SevabhaviSanstha.controller;
 import com.SevabhaviSanstha.entity.GalleryImage;
 import com.SevabhaviSanstha.service.GalleryImageService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,16 +35,17 @@ public class GalleryImageController {
 
     // Admin: upload a photo — used from every "फोटो अपलोड करा" box on the site
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "category", defaultValue = "gallery") String category,
-            @RequestParam(value = "sectionKey", required = false) String sectionKey,
-            @RequestParam(value = "uploadedBy", required = false) String uploadedBy
+            @RequestParam(value = "sectionKey", required = false) String sectionKey
     ) {
         try {
-            GalleryImage saved = service.uploadImage(file, title, description, category, sectionKey, uploadedBy);
+            String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+            GalleryImage saved = service.uploadImage(file, title, description, category, sectionKey, adminName);
             return ResponseEntity.ok(saved);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -50,6 +53,7 @@ public class GalleryImageController {
     }
 
     @RequestMapping(value = "/{id}", method = {RequestMethod.PUT, RequestMethod.POST})
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> update(
             @PathVariable Long id,
             @RequestParam(value = "file", required = false) MultipartFile file,
@@ -66,6 +70,7 @@ public class GalleryImageController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {
             service.deleteImage(id);
@@ -76,6 +81,7 @@ public class GalleryImageController {
     }
 
     @PatchMapping("/{id}/toggle")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<GalleryImage> toggle(@PathVariable Long id) {
         return ResponseEntity.ok(service.toggleActive(id));
     }

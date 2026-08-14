@@ -4,6 +4,8 @@ import com.SevabhaviSanstha.entity.MembershipPlan;
 import com.SevabhaviSanstha.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -38,16 +40,10 @@ public class MembershipPlanController {
 
     // Admin: update plan amount
     @PutMapping("/{planCode}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updatePlanAmount(
             @PathVariable String planCode,
-            @RequestBody Map<String, Object> body,
-            @RequestHeader(value = "X-Admin-User", required = false) String adminHeader) {
-
-        // Backend Admin Access Control Check
-        if (adminHeader == null || adminHeader.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "प्रशासक लॉगिन आवश्यक आहे (Admin authorization required)"));
-        }
+            @RequestBody Map<String, Object> body) {
 
         try {
             Object rawAmount = body.get("amount");
@@ -55,7 +51,7 @@ public class MembershipPlanController {
                 return ResponseEntity.badRequest().body(Map.of("error", "रक्कम आवश्यक आहे"));
             }
             BigDecimal amount = new BigDecimal(rawAmount.toString());
-            String updatedBy = body.getOrDefault("updatedBy", adminHeader).toString();
+            String updatedBy = SecurityContextHolder.getContext().getAuthentication().getName();
 
             MembershipPlan updated = paymentService.updateMembershipPlanAmount(planCode, amount, updatedBy);
             return ResponseEntity.ok(updated);

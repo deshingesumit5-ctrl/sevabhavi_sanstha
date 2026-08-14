@@ -41,9 +41,9 @@ export const AboutPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full pb-8">
+    <div className="flex flex-col w-full">
       {/* About Us Card Section */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
         <div className="bg-white rounded-3xl border border-amber-200/60 shadow-soft p-6 md:p-10 grid grid-cols-2 gap-4 md:gap-10 items-center">
           <div className="flex flex-col items-start justify-center">
             <h2 className="text-2xl md:text-3xl font-extrabold text-[#d9531e]" style={{ fontFamily: "'Baloo 2', sans-serif" }}>

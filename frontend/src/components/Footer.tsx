@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
   ];
 
   return (
-    <footer className="w-full bg-[#FFF8F0] text-charcoal border-t-2 border-saffron/30 pt-10 pb-20 lg:pb-10 px-6 shadow-xs">
+    <footer className="w-full bg-[#FFF8F0] text-charcoal border-t-2 border-saffron/30 pt-10 pb-20 lg:pb-10 px-6 shadow-xs section-gap-top">
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Column 1: About / Motto */}

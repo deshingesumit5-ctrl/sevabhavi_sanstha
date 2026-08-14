@@ -188,7 +188,7 @@ export const HomePage: React.FC = () => {
   const handleSaveEdit = async () => {
     if (!editInitiative) return;
     if (!editForm.name.trim()) {
-      alert('कृपया श्रेणीचे नाव द्या.');
+      alert('नाव आवश्यक आहे');
       return;
     }
     setSavingEdit(true);
@@ -205,7 +205,10 @@ export const HomePage: React.FC = () => {
         });
       } else {
         // Re-upload with original file if needed or update metadata
-        updated = { ...editInitiative, title: editForm.name.trim(), description: editForm.description.trim() };
+        updated = await updateImage(editInitiative.id, {
+          title: editForm.name.trim(),
+          description: editForm.description.trim()
+        });
       }
       setCustomInitiatives(prev => prev.map(i => i.id === editInitiative.id ? updated : i));
       setEditInitiative(null);
@@ -219,7 +222,7 @@ export const HomePage: React.FC = () => {
 
   const handleSaveCategory = async () => {
     if (!categoryForm.name.trim() || !categoryForm.file) {
-      alert('कृपया श्रेणीचे नाव आणि फोटो निवडा.');
+      alert('नाव आणि फोटो आवश्यक आहेत');
       return;
     }
     setSavingCategory(true);
@@ -396,7 +399,7 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col w-full pb-6">
+    <div className="flex flex-col w-full">
 
       {/* 1. Hero Section Carousel */}
       <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4">
@@ -469,7 +472,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 2. Quick Nav Row */}
-      <section className="w-full px-4 py-6">
+      <section className="w-full px-4 section-gap-top">
         <div className="flex items-center justify-between overflow-x-auto gap-4 py-2 scrollbar-none snap-x">
           {quickNav.map((item, idx) => {
             const Icon = item.icon;
@@ -492,7 +495,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 3. Dark Stat Strip */}
-      <section className="w-full bg-[#271E17] text-white py-5 px-2 sm:px-4">
+      <section className="w-full bg-[#271E17] text-white py-5 px-2 sm:px-4 section-gap-top">
         <div className="max-w-6xl mx-auto grid grid-cols-4 divide-x divide-white/10 text-center items-center">
 
           <div className="flex flex-col items-center px-1 sm:px-3">
@@ -523,7 +526,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 4. About Us Preview Card */}
-      <section className="w-full px-4 py-6 max-w-6xl mx-auto">
+      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
         <div className="bg-white rounded-3xl border border-amber-200/60 shadow-soft p-6 md:p-8 grid grid-cols-2 gap-4 md:gap-8 items-center">
 
           {/* Left Text Content */}
@@ -535,10 +538,10 @@ export const HomePage: React.FC = () => {
 
             <button
               onClick={() => navigate('/about')}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#d9531e] hover:bg-[#b84315] text-white rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all group font-body"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-[#d9531e] hover:bg-[#b84315] text-white rounded-xl font-bold text-[10px] sm:text-sm shadow-md transition-all group font-body whitespace-nowrap"
             >
-              <span className="font-body">संपूर्ण माहिती वाचा</span>
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              <span className="font-body whitespace-nowrap">संपूर्ण माहिती वाचा</span>
+              <ArrowRight size={16} className="shrink-0 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
 
@@ -602,7 +605,7 @@ export const HomePage: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 gap-3">
             <h2 className="font-heading text-2xl md:text-3xl font-bold text-maroon">
-              उपक्रम आणि उपक्रम
+              आमचे उपक्रम
             </h2>
             <div className="flex items-center gap-2">
               {isAdmin && (
@@ -748,7 +751,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. CTA Banner */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
         <div className="bg-gradient-to-r from-saffron to-maroon text-white rounded-card-lg p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-soft-lg">
 
           <div className="flex items-center gap-4 text-center md:text-left">
@@ -777,7 +780,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 7. Latest Updates Section */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
         <div className="flex items-center justify-between mb-6 gap-3">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-maroon">
             नवीन अपडेट्स

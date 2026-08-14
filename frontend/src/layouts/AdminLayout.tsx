@@ -40,11 +40,13 @@ const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Redirect if not admin
-  if (!isAdmin) return <Navigate to="/admin/login" replace />;
+  if (!isAdmin) return <Navigate to="/login" replace />;
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    navigate('/', { replace: true });
+    setTimeout(() => {
+      logout();
+    }, 200);
   };
 
   return (

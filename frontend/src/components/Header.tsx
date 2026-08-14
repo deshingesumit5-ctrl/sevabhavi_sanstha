@@ -16,8 +16,10 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    navigate('/', { replace: true });
+    setTimeout(() => {
+      logout();
+    }, 200);
   };
 
   return (

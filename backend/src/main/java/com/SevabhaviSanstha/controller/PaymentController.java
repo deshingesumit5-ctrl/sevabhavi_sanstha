@@ -5,6 +5,8 @@ import com.SevabhaviSanstha.entity.Payment;
 import com.SevabhaviSanstha.service.PaymentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,7 +34,8 @@ public class PaymentController {
             @RequestParam("upiTxnId") String upiTxnId,
             @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            Payment created = paymentService.createPayment(memberId, amount, membershipType, paymentMode, upiTxnId, file);
+            Payment created = paymentService.createPayment(memberId, amount, membershipType, paymentMode, upiTxnId,
+                    file);
             return ResponseEntity.ok(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -42,37 +45,23 @@ public class PaymentController {
         }
     }
 
-    // Admin: List all payments
     @GetMapping
-    public ResponseEntity<?> getAllPayments(
-            @RequestHeader(value = "X-Admin-User", required = false) String adminHeader) {
-
-        // Backend Admin Access Control Check
-        if (adminHeader == null || adminHeader.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "प्रशासक लॉगिन आवश्यक आहे (Admin authorization required)"));
-        }
-
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getAllPayments() {
         List<PaymentDTO> payments = paymentService.getAllPayments();
         return ResponseEntity.ok(payments);
     }
 
-    // Admin: Update Payment Status (पडताळणी करा / नाकारा)
     @PutMapping("/{id}/status")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> updateStatus(
             @PathVariable Integer id,
             @RequestParam("status") String status,
-            @RequestParam(value = "reason", required = false) String reason,
-            @RequestHeader(value = "X-Admin-User", required = false) String adminHeader) {
-
-        // Backend Admin Access Control Check
-        if (adminHeader == null || adminHeader.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "प्रशासक लॉगिन आवश्यक आहे (Admin authorization required)"));
-        }
+            @RequestParam(value = "reason", required = false) String reason) {
 
         try {
-            PaymentDTO updated = paymentService.updatePaymentStatus(id, status, adminHeader, reason);
+            String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+            PaymentDTO updated = paymentService.updatePaymentStatus(id, status, adminName, reason);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -84,33 +73,25 @@ public class PaymentController {
 
     // Admin: Verify payment
     @PutMapping("/{id}/verify")
-    public ResponseEntity<?> verifyPayment(
-            @PathVariable Integer id,
-            @RequestHeader(value = "X-Admin-User", required = false) String adminHeader) {
-        if (adminHeader == null || adminHeader.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "प्रशासक लॉगिन आवश्यक आहे (Admin authorization required)"));
-        }
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> verifyPayment(@PathVariable Integer id) {
         try {
-            PaymentDTO updated = paymentService.updatePaymentStatus(id, "पडताळलेले", adminHeader, null);
+            String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+            PaymentDTO updated = paymentService.updatePaymentStatus(id, "पडताळलेले", adminName, null);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    // Admin: Reject payment
     @PutMapping("/{id}/reject")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> rejectPayment(
             @PathVariable Integer id,
-            @RequestParam(value = "reason", required = false) String reason,
-            @RequestHeader(value = "X-Admin-User", required = false) String adminHeader) {
-        if (adminHeader == null || adminHeader.trim().isEmpty()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "प्रशासक लॉगिन आवश्यक आहे (Admin authorization required)"));
-        }
+            @RequestParam(value = "reason", required = false) String reason) {
         try {
-            PaymentDTO updated = paymentService.updatePaymentStatus(id, "नाकारलेले", adminHeader, reason);
+            String adminName = SecurityContextHolder.getContext().getAuthentication().getName();
+            PaymentDTO updated = paymentService.updatePaymentStatus(id, "नाकारलेले", adminName, reason);
             return ResponseEntity.ok(updated);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -103,7 +103,7 @@ export const UpdatesPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full max-w-6xl mx-auto px-4 pb-8 section-gap-top">
       {/* Header with back button */}
       <div className="flex items-center gap-4 mb-6">
         <button

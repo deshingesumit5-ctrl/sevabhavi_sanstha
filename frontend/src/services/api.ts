@@ -1,13 +1,15 @@
-const BASE_URL = `http://192.168.1.13:8080/api`;
+const BASE_URL = `http://192.168.1.7:8080/api`;
 
-const getAdminHeaders = (): Record<string, string> => {
+export const getAdminHeaders = (): Record<string, string> => {
   try {
     const stored = localStorage.getItem('sevabhavi_admin_session');
     if (stored) {
       const parsed = JSON.parse(stored);
+      const headers: Record<string, string> = {};
       if (parsed.token) {
-        return { 'Authorization': `Bearer ${parsed.token}` };
+        headers['Authorization'] = `Bearer ${parsed.token}`;
       }
+      return headers;
     }
   } catch { }
   return {};
@@ -327,13 +329,17 @@ export const api = {
 
   // Admin - Get all registrations
   getAllMembers: async (): Promise<MemberRegistrationData[]> => {
-    const res = await fetch(`${BASE_URL}/member-registration`);
+    const res = await fetch(`${BASE_URL}/member-registration`, {
+      headers: { ...getAdminHeaders() },
+    });
     if (!res.ok) throw new Error('Failed to fetch member registrations');
     return res.json();
   },
 
   getAllMarriages: async (): Promise<MarriageRegistrationData[]> => {
-    const res = await fetch(`${BASE_URL}/marriage-registration`);
+    const res = await fetch(`${BASE_URL}/marriage-registration`, {
+      headers: { ...getAdminHeaders() },
+    });
     if (!res.ok) throw new Error('Failed to fetch marriage registrations');
     return res.json();
   },
@@ -344,6 +350,7 @@ export const api = {
     if (reason) url += `&reason=${encodeURIComponent(reason)}`;
     const res = await fetch(url, {
       method: 'PUT',
+      headers: { ...getAdminHeaders() },
     });
     if (!res.ok) throw new Error('Failed to update member status');
     return res.json();
@@ -354,6 +361,7 @@ export const api = {
     if (reason) url += `&reason=${encodeURIComponent(reason)}`;
     const res = await fetch(url, {
       method: 'PUT',
+      headers: { ...getAdminHeaders() },
     });
     if (!res.ok) throw new Error('Failed to update marriage status');
     return res.json();
@@ -374,13 +382,17 @@ export const api = {
 
   // Dashboard Stats & Today's Registrations
   getDashboardStats: async (): Promise<DashboardStatsData> => {
-    const res = await fetch(`${BASE_URL}/dashboard/stats`);
+    const res = await fetch(`${BASE_URL}/dashboard/stats`, {
+      headers: { ...getAdminHeaders() },
+    });
     if (!res.ok) throw new Error('Failed to fetch dashboard stats');
     return res.json();
   },
 
   getTodayRegistrations: async (): Promise<TodayRegistrationData[]> => {
-    const res = await fetch(`${BASE_URL}/dashboard/today`);
+    const res = await fetch(`${BASE_URL}/dashboard/today`, {
+      headers: { ...getAdminHeaders() },
+    });
     if (!res.ok) throw new Error('Failed to fetch today registrations');
     return res.json();
   },
@@ -395,7 +407,10 @@ export const api = {
   createNews: async (data: { title: string; content: string; category?: string }): Promise<NewsData> => {
     const res = await fetch(`${BASE_URL}/news`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAdminHeaders()
+      },
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error('Failed to save news');
@@ -403,7 +418,12 @@ export const api = {
   },
 
   deleteNews: async (id: number): Promise<void> => {
-    const res = await fetch(`${BASE_URL}/news/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${BASE_URL}/news/${id}`, { 
+      method: 'DELETE',
+      headers: {
+        ...getAdminHeaders()
+      }
+    });
     if (!res.ok) throw new Error('Failed to delete news');
   },
 
@@ -440,7 +460,9 @@ export const api = {
 
   getAllInquiries: async (): Promise<InquiryData[]> => {
     try {
-      const res = await fetch(`${BASE_URL}/inquiries`);
+      const res = await fetch(`${BASE_URL}/inquiries`, {
+        headers: { ...getAdminHeaders() },
+      });
       if (res.ok) {
         const remoteData: InquiryData[] = await res.json();
         const local = getLocalInquiries();
@@ -456,7 +478,12 @@ export const api = {
 
   deleteInquiry: async (id: number): Promise<void> => {
     try {
-      await fetch(`${BASE_URL}/inquiries/${id}`, { method: 'DELETE' });
+      await fetch(`${BASE_URL}/inquiries/${id}`, { 
+        method: 'DELETE',
+        headers: {
+          ...getAdminHeaders()
+        }
+      });
     } catch (err) {
       console.warn('Backend unavailable, deleting local inquiry:', err);
     }

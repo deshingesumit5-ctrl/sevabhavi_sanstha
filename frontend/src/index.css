@@ -4,6 +4,7 @@
   --font-primary: "Manrope", "Noto Sans Devanagari", sans-serif;
   --font-quicksand: "Quicksand", serif;
   --font-caveat: "Caveat", serif;
+  --section-gap: 16px;
 }
 
 @tailwind base;
@@ -16,8 +17,13 @@
     margin: 0;
     overflow-x: hidden;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-heading font-bold text-charcoal;
   }
 }
@@ -26,9 +32,11 @@
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   @apply bg-cream;
 }
+
 ::-webkit-scrollbar-thumb {
   @apply bg-saffron/40 rounded-full hover:bg-saffron/60 transition-colors;
 }
@@ -38,6 +46,7 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
@@ -47,3 +56,6 @@
   min-height: 100vh;
 }
 
+.section-gap-top {
+  margin-top: var(--section-gap);
+}

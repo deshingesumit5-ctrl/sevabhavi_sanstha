@@ -33,9 +33,8 @@ export const MemberRegistrationPage: React.FC = () => {
   const BANNER_SECTION_KEY = 'member_registration_banner';
 
   // Payment State
-  // Commented out automatic livePlanAmount state as per request
-  // const [livePlanAmount, setLivePlanAmount] = useState<number | null>(null);
-  const livePlanAmount: number | null = null;
+  const [annualPlanAmount, setAnnualPlanAmount] = useState<number>(100);
+  const [lifetimePlanAmount, setLifetimePlanAmount] = useState<number>(2000);
   const [paymentAmount, setPaymentAmount] = useState<string>(() => localDraft?.paymentAmount ?? '');
   const [paymentQrSettings, setPaymentQrSettings] = useState<PaymentSettingResponse | null>(null);
   const [_loadingPaymentData, setLoadingPaymentData] = useState<boolean>(false);
@@ -230,11 +229,18 @@ export const MemberRegistrationPage: React.FC = () => {
   useEffect(() => {
     setLoadingPaymentData(true);
     Promise.all([
-      // Commented out live amount autofilling as per request
-      // api.getMembershipPlanByCode(selectedMemberType),
+      api.getMembershipPlans().catch(err => {
+        console.error('Error loading plans:', err);
+        return [];
+      }),
       api.getPaymentQrSettings()
-    ]).then(([qrSettings]) => {
-      // setLivePlanAmount(plan.amount);
+    ]).then(([plans, qrSettings]) => {
+      if (plans && plans.length > 0) {
+        const annual = plans.find(p => p.planCode === 'annual');
+        const lifetime = plans.find(p => p.planCode === 'lifetime');
+        if (annual) setAnnualPlanAmount(annual.amount);
+        if (lifetime) setLifetimePlanAmount(lifetime.amount);
+      }
       setPaymentQrSettings(qrSettings);
     }).catch(err => {
       console.error('Error loading live payment details:', err);
@@ -466,23 +472,22 @@ export const MemberRegistrationPage: React.FC = () => {
         return;
       }
       setScreenshotFile(file);
+      setPaymentSubmitted(false);
+      setPaymentSuccessMessage(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         setScreenshotPreview(reader.result as string);
+        handlePaymentSubmit(file);
       };
       reader.readAsDataURL(file);
+      setErrors((prev) => ({ ...prev, screenshot: undefined }));
     }
   };
 
 
   // Submit payment in Step 4
-  const handlePaymentSubmit = async () => {
-    if (!screenshotFile) {
-      alert('कृपया पेमेंटचा स्क्रीनशॉट अपलोड करा.');
-      return;
-    }
-
-    const finalAmount = (formData.memberType === 'lifetime' ? '2000' : '100');
+  const handlePaymentSubmit = async (file: File): Promise<boolean> => {
+    const finalAmount = (formData.memberType === 'lifetime' ? lifetimePlanAmount.toString() : annualPlanAmount.toString());
     // Generate a unique transaction ID since the manual input has been removed
     const finalTxnId = 'TXN-' + Date.now() + Math.random().toString(36).substring(2, 7).toUpperCase();
 
@@ -532,7 +537,7 @@ export const MemberRegistrationPage: React.FC = () => {
       pData.append('membershipType', formData.memberType);
       pData.append('paymentMode', 'UPI');
       pData.append('upiTxnId', finalTxnId);
-      pData.append('file', screenshotFile);
+      pData.append('file', file);
 
       await api.submitPayment(pData);
 
@@ -542,9 +547,12 @@ export const MemberRegistrationPage: React.FC = () => {
 
       setPaymentSubmitted(true);
       setPaymentSuccessMessage('तुमचे पेमेंट यशस्वी झाले आहे! तुम्ही फॉर्म पुढे सुरू ठेवू शकता.');
+      setErrors((prev) => ({ ...prev, screenshot: undefined }));
+      return true;
 
     } catch (err: any) {
       alert('पेमेंट सबमिट करताना त्रुटी आली: ' + (err.message || err));
+      return false;
     } finally {
       setIsSubmittingPayment(false);
     }
@@ -582,10 +590,19 @@ export const MemberRegistrationPage: React.FC = () => {
     if (currentStep < 4) {
       setCurrentStep((prev) => prev + 1);
     } else if (currentStep === 4) {
-      if (!paymentSubmitted) {
-        alert('कृपया प्रथम पेमेंट पूर्ण करा व स्क्रीनशॉट साठवा.');
+      if (!screenshotFile) {
+        setErrors(prev => ({ ...prev, screenshot: 'कृपया पेमेंटचा स्क्रीनशॉट अपलोड करा.' }));
         return;
       }
+      if (!paymentSubmitted) {
+        setErrors(prev => ({ ...prev, screenshot: 'कृपया प्रथम पेमेंट पूर्ण करा व स्क्रीनशॉट साठवा.' }));
+        return;
+      }
+      setErrors(prev => {
+        const copy = { ...prev };
+        delete copy.screenshot;
+        return copy;
+      });
       setCurrentStep(5);
     } else if (currentStep === 5) {
       // Final submit verification: check all steps
@@ -676,9 +693,7 @@ export const MemberRegistrationPage: React.FC = () => {
   const selectedMaritalLabel = maritalStatuses.find(m => m.code === formData.maritalStatus)?.labelMr || formData.maritalStatus;
 
   // Live UPI deep link variables
-  // Commented out automatic amount calculation:
-  // const currentPlanAmount = livePlanAmount !== null ? livePlanAmount : (formData.memberType === 'lifetime' ? 2000 : 100);
-  const currentPlanAmount = paymentAmount ? Number(paymentAmount) : 0;
+  const currentPlanAmount = formData.memberType === 'lifetime' ? lifetimePlanAmount : annualPlanAmount;
   const upiIdVal = paymentQrSettings?.upiId || 'dapolimadangad@upi';
   const payeeNameVal = paymentQrSettings?.payeeName || 'दापोली मडणगड सेवाभावी संस्था, पुणे';
   const liveUpiLink = buildUpiLink(upiIdVal, payeeNameVal, currentPlanAmount, 'Sadasya Nondani');
@@ -693,9 +708,9 @@ export const MemberRegistrationPage: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full pb-8">
+    <div className="flex flex-col w-full">
       {/* 1. Hero Banner */}
-      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4">
+      <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4 section-gap-top">
         <div className="relative rounded-card-lg overflow-hidden shadow-soft">
           {bannerImage ? (
             <>
@@ -748,7 +763,7 @@ export const MemberRegistrationPage: React.FC = () => {
       </section>
 
       {/* 2. Membership Type Selection Below Banner */}
-      <section id="membership-type-section" className="w-full px-4 pt-4 max-w-4xl mx-auto">
+      <section id="membership-type-section" className="w-full px-4 max-w-4xl mx-auto section-gap-top">
         <div className="bg-white border border-saffron/20 rounded-2xl p-5 md:p-6 shadow-soft space-y-5">
           <p className="text-center text-sm font-bold text-charcoal/70 mb-2 flex items-center justify-center gap-3" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
             <span className="hidden sm:inline-block h-px w-12 bg-gradient-to-r from-transparent to-saffron/40" />
@@ -778,7 +793,7 @@ export const MemberRegistrationPage: React.FC = () => {
                 <span className="font-extrabold text-saffron text-base sm:text-lg" style={{ fontFamily: "'Baloo 2', sans-serif" }}>वार्षिक सदस्यत्व</span>
                 <span className="text-[11px] sm:text-xs text-charcoal/50 font-semibold mt-0.5">1 वर्षासाठी वैध</span>
                 <span className="text-sm sm:text-base font-extrabold text-saffron-dark font-mono mt-1">
-                  ₹{formData.memberType === 'annual' && livePlanAmount !== null ? livePlanAmount : 100}<span className="text-[10px] sm:text-xs text-charcoal/60 font-body">/ वर्ष</span>
+                  ₹{annualPlanAmount}<span className="text-[10px] sm:text-xs text-charcoal/60 font-body">/ वर्ष</span>
                 </span>
               </div>
               <span
@@ -817,7 +832,7 @@ export const MemberRegistrationPage: React.FC = () => {
                 <span className="font-extrabold text-saffron text-base sm:text-lg" style={{ fontFamily: "'Baloo 2', sans-serif" }}>आजीवन सदस्यत्व</span>
                 <span className="text-[11px] sm:text-xs text-charcoal/50 font-semibold mt-0.5">कायमस्वरूपी वैध</span>
                 <span className="text-sm sm:text-base font-extrabold text-saffron-dark font-mono mt-1">
-                  ₹{formData.memberType === 'lifetime' && livePlanAmount !== null ? livePlanAmount : 2000} <span className="text-[10px] sm:text-xs text-charcoal/60 font-body">एकदाच</span>
+                  ₹{lifetimePlanAmount} <span className="text-[10px] sm:text-xs text-charcoal/60 font-body">एकदाच</span>
                 </span>
               </div>
               <span
@@ -832,7 +847,7 @@ export const MemberRegistrationPage: React.FC = () => {
       </section>
 
       {/* 3. Form Stepper and Container */}
-      <section className="w-full px-4 py-8 max-w-4xl mx-auto space-y-6">
+      <section className="w-full px-4 max-w-4xl mx-auto space-y-6 section-gap-top">
 
         {/* Stepper Card */}
         <div className="bg-white rounded-card-lg border border-saffron/5 shadow-soft p-5">
@@ -1388,7 +1403,9 @@ export const MemberRegistrationPage: React.FC = () => {
                       <Upload className="w-6 h-6" />
                     </div> */}
                     <div>
-                      <h3 className="text-base font-bold text-saffron" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट स्क्रीनशॉट</h3>
+                      <h3 className="text-base font-bold text-saffron" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                        पेमेंट स्क्रीनशॉट <span className="text-red-500">*</span>
+                      </h3>
                       <p className="text-xs text-charcoal/60">पेमेंट पूर्ण झाल्यावर कृपया त्याचा स्क्रीनशॉट येथे अपलोड करा</p>
                     </div>
                   </div>
@@ -1400,17 +1417,27 @@ export const MemberRegistrationPage: React.FC = () => {
                         id="payment-screenshot-input"
                         accept="image/png, image/jpeg, image/jpg"
                         onChange={handleScreenshotChange}
-                        disabled={paymentSubmitted}
+                        disabled={_isSubmittingPayment}
                         className="hidden"
                       />
                       <button
                         type="button"
-                        disabled={paymentSubmitted}
+                        disabled={_isSubmittingPayment}
                         onClick={() => document.getElementById('payment-screenshot-input')?.click()}
                         className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-saffron/20 hover:border-saffron text-saffron rounded-xl font-bold text-xs shadow-xs transition-colors disabled:opacity-50 cursor-pointer"
                       >
-                        <Upload size={16} />
-                        <span>{screenshotFile ? 'स्क्रीनशॉट बदलू शकता' : 'स्क्रीनशॉट निवडा'}</span>
+                        {_isSubmittingPayment ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Upload size={16} />
+                        )}
+                        <span>
+                          {_isSubmittingPayment
+                            ? 'अपलोड होत आहे...'
+                            : screenshotFile
+                            ? 'स्क्रीनशॉट बदलू शकता'
+                            : 'स्क्रीनशॉट निवडा'}
+                        </span>
                       </button>
                       {screenshotFile && (
                         <span className="text-xs font-semibold text-emerald-700 truncate max-w-[280px]">
@@ -1422,7 +1449,7 @@ export const MemberRegistrationPage: React.FC = () => {
                     {screenshotPreview && (
                       <div className="mt-4 relative w-32 h-32 rounded-xl overflow-hidden border-2 border-saffron shadow-sm group">
                         <img src={screenshotPreview} alt="Screenshot Preview" className="w-full h-full object-cover" />
-                        {!paymentSubmitted && (
+                        {!_isSubmittingPayment && (
                           <div className="absolute top-1.5 right-1.5 flex gap-1.5 z-10">
                             <button
                               type="button"
@@ -1437,6 +1464,8 @@ export const MemberRegistrationPage: React.FC = () => {
                               onClick={() => {
                                 setScreenshotFile(null);
                                 setScreenshotPreview(null);
+                                setPaymentSubmitted(false);
+                                setPaymentSuccessMessage(null);
                                 const input = document.getElementById('payment-screenshot-input') as HTMLInputElement;
                                 if (input) input.value = '';
                               }}
@@ -1453,7 +1482,7 @@ export const MemberRegistrationPage: React.FC = () => {
 
                   {!paymentSubmitted && (
                     <div className="pt-2">
-                      <button
+                      {/* <button
                         type="button"
                         onClick={handlePaymentSubmit}
                         disabled={_isSubmittingPayment}
@@ -1461,7 +1490,7 @@ export const MemberRegistrationPage: React.FC = () => {
                       >
                         {_isSubmittingPayment && <Loader2 size={16} className="animate-spin" />}
                         <span>मी पेमेंट पूर्ण केले ✓</span>
-                      </button>
+                      </button> */}
                     </div>
                   )}
 
@@ -1470,6 +1499,10 @@ export const MemberRegistrationPage: React.FC = () => {
                       <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
                       <span className="text-sm font-bold">{paymentSuccessMessage}</span>
                     </div>
+                  )}
+
+                  {errors.screenshot && (
+                    <p className="text-red-500 text-xs mt-1 font-bold">{errors.screenshot}</p>
                   )}
                 </div>
 
@@ -1511,15 +1544,15 @@ export const MemberRegistrationPage: React.FC = () => {
                     <div>
                       <span className="text-charcoal/50 font-semibold block">सदस्यत्व प्रकार:</span>
                       <span className="font-bold text-saffron uppercase" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
-                        {formData.memberType === 'lifetime' ? 'आजीवन (Lifetime) - ₹' + (livePlanAmount || 2000) : 'वार्षिक (Annual) - ₹' + (livePlanAmount || 100)}
+                        {formData.memberType === 'lifetime' ? 'आजीवन (Lifetime) - ₹' + lifetimePlanAmount : 'वार्षिक (Annual) - ₹' + annualPlanAmount}
                       </span>
                     </div>
-                    <div>
+                    {/* <div>
                       <span className="text-charcoal/50 font-semibold block">पेमेंट माध्यम व Txn ID:</span>
                       <span className="font-bold text-emerald-800">
                         {paymentMode} - {upiTxnId || 'सादर केले'}
                       </span>
-                    </div>
+                    </div> */}
                     <div>
                       <span className="text-charcoal/50 font-semibold block">पत्ता:</span>
                       <span className="font-bold text-charcoal/90">
@@ -1611,7 +1644,7 @@ export const MemberRegistrationPage: React.FC = () => {
                 onClick={() => setShowSuccessModal(false)}
                 className="w-full sm:w-auto px-8 py-2.5 bg-saffron hover:bg-saffron-dark text-white rounded-full font-bold text-sm shadow-md shadow-saffron/20 hover:shadow-lg transition-all duration-300"
               >
-                ठीक आहे (Close)
+                ठीक आहे 
               </button>
             </div>
           </div>

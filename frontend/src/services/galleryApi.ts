@@ -1,4 +1,6 @@
-const API_BASE = `http://192.168.1.13:8080/api/gallery`;
+import { getAdminHeaders } from "./api";
+
+const API_BASE = `http://192.168.1.7:8080/api/gallery`;
 
 export interface GalleryImage {
   id: number;
@@ -42,6 +44,9 @@ export async function uploadImage(params: {
 
   const res = await fetch(`${API_BASE}/upload`, {
     method: "POST",
+    headers: {
+      ...getAdminHeaders(),
+    },
     body: formData,
   });
   if (!res.ok) {
@@ -62,6 +67,9 @@ export async function updateImage(
 
   const res = await fetch(`${API_BASE}/${id}`, {
     method: "PUT",
+    headers: {
+      ...getAdminHeaders(),
+    },
     body: formData,
   });
   if (!res.ok) {
@@ -84,6 +92,9 @@ export async function updateImageWithFile(
 
     const res = await fetch(`${API_BASE}/${id}`, {
       method: "PUT",
+      headers: {
+        ...getAdminHeaders(),
+      },
       body: formData,
     });
     if (res.ok) {
@@ -98,11 +109,16 @@ export async function updateImageWithFile(
 }
 
 export async function deleteImage(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+  const res = await fetch(`${API_BASE}/${id}`, {
+    method: "DELETE",
+    headers: {
+      ...getAdminHeaders(),
+    },
+  });
   if (!res.ok) throw new Error("फोटो हटवता आला नाही");
 }
 
 // backend serves files at /uploads/... — this builds the full URL for <img src>
 export function imageUrl(path: string): string {
-  return path.startsWith("http") ? path : `http://192.168.1.13:8080${path}`;
+  return path.startsWith("http") ? path : `http://192.168.1.7:8080${path}`;
 }

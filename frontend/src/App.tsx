@@ -79,9 +79,11 @@ function App() {
 
   // Scroll to top on route change (public pages)
   const isAdminRoute = location.pathname.startsWith('/admin');
-  if (!isAdminRoute) {
-    // Non-blocking scroll reset handled by each public page if needed
-  }
+  useEffect(() => {
+    if (!isAdminRoute) {
+      window.scrollTo(0, 0);
+    }
+  }, [location.pathname, isAdminRoute]);
 
   return (
     <Routes>

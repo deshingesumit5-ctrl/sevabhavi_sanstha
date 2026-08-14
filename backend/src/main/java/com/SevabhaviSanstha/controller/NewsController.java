@@ -4,6 +4,7 @@ import com.SevabhaviSanstha.entity.News;
 import com.SevabhaviSanstha.service.NewsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +17,7 @@ public class NewsController {
     private NewsService newsService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<News> createNews(@RequestBody News news) {
         News saved = newsService.saveNews(news);
         return ResponseEntity.ok(saved);
@@ -27,6 +29,7 @@ public class NewsController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> deleteNews(@PathVariable Integer id) {
         newsService.deleteNews(id);
         return ResponseEntity.ok().build();
