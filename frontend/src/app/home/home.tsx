@@ -380,11 +380,11 @@ export const HomePage: React.FC = () => {
 
   // Quick navigation items
   const quickNav = [
-    { label: 'आमच्याबद्दल', icon: Users, id: 'about' },
-    { label: 'सदस्य नोंदणी', icon: Calendar, id: 'member-registration' },
-    { label: 'रक्तदान शिबिर', icon: Droplet, id: 'home' },
-    { label: 'पर्यावरण', icon: Sprout, id: 'home' },
-    { label: 'गॅलरी', icon: ImageIcon, id: 'gallery' },
+    { label: 'आमच्याबद्दल', icon: Users, path: '/about' },
+    { label: 'सदस्य नोंदणी', icon: Calendar, path: '/member-registration' },
+    { label: 'रक्तदान शिबिर', icon: Droplet, path: '/gallery?category=blood' },
+    { label: 'पर्यावरण', icon: Sprout, path: '/gallery?category=env' },
+    { label: 'गॅलरी', icon: ImageIcon, path: '/gallery' },
   ];
 
   const formatUpdateDate = (sectionKey?: string) => {
@@ -479,7 +479,7 @@ export const HomePage: React.FC = () => {
             return (
               <button
                 key={idx}
-                onClick={() => navigate(`/${item.id === 'home' ? '' : item.id}`)}
+                onClick={() => navigate(item.path)}
                 className="flex flex-col items-center justify-center min-w-[85px] p-3 bg-white rounded-card border border-maroon/5 shadow-soft hover:shadow-md hover:border-saffron/20 transition-all duration-300 snap-center font-body"
               >
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-cream text-maroon mb-2 group-hover:bg-saffron/10">

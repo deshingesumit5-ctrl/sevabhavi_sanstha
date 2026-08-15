@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
 import { uploadImage, imageUrl, deleteImage, fetchByCategory, fetchAllImages, updateImage, updateImageWithFile, type GalleryImage } from '../../services/galleryApi';
@@ -73,9 +74,20 @@ export const GalleryPage: React.FC = () => {
     });
   };
 
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('all');
   const [photos, setPhotos] = useState<GalleryImage[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const category = queryParams.get('category');
+    if (category) {
+      setActiveTab(category);
+    } else {
+      setActiveTab('all');
+    }
+  }, [location.search]);
 
   const defaultCategories = [
     { id: 'all', label: 'सर्व (All)' },
@@ -97,7 +109,7 @@ export const GalleryPage: React.FC = () => {
     try {
       const data = activeTab === 'all' ? await fetchAllImages() : await fetchByCategory(activeTab);
       // exclude banner, updates, initiative, about, gallery_category from grid
-      const excludedCategories = ['banner', 'updates', 'initiative', 'about', 'gallery_category'];
+      const excludedCategories = ['banner', 'updates', 'initiative', 'about', 'gallery_category', 'payment_qr'];
       setPhotos(data.filter((img) => !excludedCategories.includes(img.category) && img.isActive !== false));
     } catch (err) {
       console.error(err);
