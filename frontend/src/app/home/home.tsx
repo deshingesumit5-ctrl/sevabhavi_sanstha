@@ -383,7 +383,7 @@ export const HomePage: React.FC = () => {
     { label: 'आमच्याबद्दल', icon: Users, path: '/about' },
     { label: 'सदस्य नोंदणी', icon: Calendar, path: '/member-registration' },
     { label: 'रक्तदान शिबिर', icon: Droplet, path: '/gallery?category=blood' },
-    { label: 'पर्यावरण', icon: Sprout, path: '/gallery?category=env' },
+    { label: 'पर्यावरण संवर्धन', icon: Sprout, path: '/gallery?category=env' },
     { label: 'गॅलरी', icon: ImageIcon, path: '/gallery' },
   ];
 
