@@ -13,8 +13,9 @@ const convertDigitsToMarathi = (str: string | number): string => {
 };
 
 const AdminInquiriesPage: React.FC = () => {
-  const [inquiries, setInquiries] = useState<InquiryData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialCached = api.getCachedInquiries();
+  const [inquiries, setInquiries] = useState<InquiryData[]>(initialCached || []);
+  const [loading, setLoading] = useState<boolean>(!initialCached);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Filters state
@@ -33,7 +34,6 @@ const AdminInquiriesPage: React.FC = () => {
 
   const loadInquiries = async () => {
     try {
-      setLoading(true);
       const data = await api.getAllInquiries();
       const sorted = [...data].sort((a, b) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -117,17 +117,6 @@ const AdminInquiriesPage: React.FC = () => {
     );
   });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[300px]">
-        <div className="text-center space-y-2">
-          <div className="w-8 h-8 border-4 border-saffron border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs font-semibold text-charcoal/60">लोड होत आहे...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Banner Message Alert */}
@@ -203,7 +192,12 @@ const AdminInquiriesPage: React.FC = () => {
       )}
 
       {/* Inquiries Table Container */}
-      {filteredInquiries.length === 0 ? (
+      {loading && inquiries.length === 0 ? (
+        <div className="bg-white rounded-card border border-amber-200/60 shadow-soft p-12 text-center">
+          <div className="w-8 h-8 border-3 border-saffron border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs text-charcoal/50 font-semibold">माहिती लोड होत आहे...</p>
+        </div>
+      ) : filteredInquiries.length === 0 ? (
         <div className="bg-white rounded-card border border-charcoal/5 shadow-soft p-12 text-center">
           <HelpCircle size={48} className="mx-auto text-charcoal/20 mb-4" />
           <p className="text-sm text-charcoal/50 font-semibold">कोणतेही चौकशी अर्ज उपलब्ध नाहीत.</p>
@@ -219,7 +213,7 @@ const AdminInquiriesPage: React.FC = () => {
                     <span className="px-2 py-0.5 bg-amber-100/80 text-amber-900 text-[11px] font-bold rounded-lg shrink-0">
                       #{convertDigitsToMarathi(index + 1)}
                     </span>
-                    <p className="text-base font-bold text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{inq.name}</p>
+                    <p className="text-base font-normal text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{inq.name}</p>
                   </div>
                   <span className="text-[10px] text-charcoal/50 font-semibold">{formatDate(inq.createdAt)}</span>
                 </div>
@@ -303,7 +297,7 @@ const AdminInquiriesPage: React.FC = () => {
                   <React.Fragment key={inq.id}>
                     <tr className="hover:bg-cream/30 transition-colors font-medium text-charcoal">
                       <td className="p-3.5 font-bold text-center text-charcoal/70">{convertDigitsToMarathi(index + 1)}</td>
-                      <td className="p-3.5 font-bold">{inq.name}</td>
+                      <td className="p-3.5 font-normal text-charcoal">{inq.name}</td>
                       <td className="p-3.5">{inq.mobile}</td>
                       <td className="p-3.5">{inq.email || '-'}</td>
                       <td className="p-3.5 max-w-xs truncate" title={inq.message}>

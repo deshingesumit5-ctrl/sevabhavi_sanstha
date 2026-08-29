@@ -25,7 +25,7 @@ public class Category {
     @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "image_url", columnDefinition = "NVARCHAR(500)")
+    @Column(name = "image_url", columnDefinition = "NVARCHAR(MAX)")
     private String imageUrl;
 
     @Column(name = "display_order")

@@ -2,6 +2,7 @@ package com.SevabhaviSanstha.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "states")
@@ -11,9 +12,11 @@ public class State {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "name_mr", nullable = false, length = 100)
+    @Nationalized
+    @Column(name = "name_mr", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String nameMr;
 
-    @Column(name = "name_en", nullable = false, length = 100)
+    @Nationalized
+    @Column(name = "name_en", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String nameEn;
 }

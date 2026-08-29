@@ -1,6 +1,6 @@
-import { getAdminHeaders } from "./api";
+import { getAdminHeaders, getApiBaseUrl } from "./api";
 
-const API_BASE = `http://192.168.1.7:8080/api/gallery`;
+const getGalleryApiBase = () => `${getApiBaseUrl()}/gallery`;
 
 export interface GalleryImage {
   id: number;
@@ -15,15 +15,25 @@ export interface GalleryImage {
 }
 
 export async function fetchAllImages(): Promise<GalleryImage[]> {
-  const res = await fetch(API_BASE);
-  if (!res.ok) throw new Error("गॅलरी लोड करता आली नाही");
-  return res.json();
+  try {
+    const res = await fetch(getGalleryApiBase());
+    if (!res.ok) throw new Error("गॅलरी लोड करता आली नाही");
+    return await res.json();
+  } catch (err) {
+    console.warn("Gallery API offline:", err);
+    return [];
+  }
 }
 
 export async function fetchByCategory(category: string): Promise<GalleryImage[]> {
-  const res = await fetch(`${API_BASE}/category/${category}`);
-  if (!res.ok) throw new Error("फोटो लोड करता आले नाहीत");
-  return res.json();
+  try {
+    const res = await fetch(`${getGalleryApiBase()}/category/${category}`);
+    if (!res.ok) throw new Error("फोटो लोड करता आले नाहीत");
+    return await res.json();
+  } catch (err) {
+    console.warn(`Gallery API offline for category ${category}:`, err);
+    return [];
+  }
 }
 
 export async function uploadImage(params: {
@@ -42,7 +52,7 @@ export async function uploadImage(params: {
   if (params.sectionKey) formData.append("sectionKey", params.sectionKey);
   if (params.uploadedBy) formData.append("uploadedBy", params.uploadedBy);
 
-  const res = await fetch(`${API_BASE}/upload`, {
+  const res = await fetch(`${getGalleryApiBase()}/upload`, {
     method: "POST",
     headers: {
       ...getAdminHeaders(),
@@ -65,7 +75,7 @@ export async function updateImage(
   if (params.description !== undefined) formData.append("description", params.description);
   if (params.date !== undefined) formData.append("sectionKey", params.date); // store date in sectionKey for updates
 
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await fetch(`${getGalleryApiBase()}/${id}`, {
     method: "PUT",
     headers: {
       ...getAdminHeaders(),
@@ -90,7 +100,7 @@ export async function updateImageWithFile(
     if (params.description !== undefined) formData.append("description", params.description);
     if (params.sectionKey !== undefined) formData.append("sectionKey", params.sectionKey);
 
-    const res = await fetch(`${API_BASE}/${id}`, {
+    const res = await fetch(`${getGalleryApiBase()}/${id}`, {
       method: "PUT",
       headers: {
         ...getAdminHeaders(),
@@ -109,7 +119,7 @@ export async function updateImageWithFile(
 }
 
 export async function deleteImage(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await fetch(`${getGalleryApiBase()}/${id}`, {
     method: "DELETE",
     headers: {
       ...getAdminHeaders(),
@@ -120,5 +130,10 @@ export async function deleteImage(id: number): Promise<void> {
 
 // backend serves files at /uploads/... — this builds the full URL for <img src>
 export function imageUrl(path: string): string {
-  return path.startsWith("http") ? path : `http://192.168.1.7:8080${path}`;
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const host = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+  const envServer = (import.meta as any).env?.VITE_SERVER_URL;
+  const serverBase = envServer || `http://${host}:8080`;
+  return `${serverBase}${path.startsWith('/') ? '' : '/'}${path}`;
 }

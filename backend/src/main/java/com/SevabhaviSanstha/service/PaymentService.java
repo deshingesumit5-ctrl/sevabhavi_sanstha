@@ -24,6 +24,8 @@ public interface PaymentService {
 
     Payment createPayment(Integer memberId, BigDecimal amount, String membershipType, String paymentMode, String upiTxnId, MultipartFile file) throws Exception;
 
+    Payment createPaymentWithDetails(Integer memberId, String registrationType, Integer registrationId, BigDecimal amount, String membershipType, String paymentMode, String upiTxnId, MultipartFile file) throws Exception;
+
     List<PaymentDTO> getAllPayments();
 
     PaymentDTO updatePaymentStatus(Integer paymentId, String status, String verifiedBy, String reason);

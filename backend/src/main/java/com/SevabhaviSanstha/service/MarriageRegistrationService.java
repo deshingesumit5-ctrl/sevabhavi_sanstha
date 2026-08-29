@@ -7,4 +7,6 @@ public interface MarriageRegistrationService {
     MarriageRegistration registerMarriage(MarriageRegistration registration);
     List<MarriageRegistration> getAllRegistrations();
     MarriageRegistration updateApprovalStatus(Integer id, String status);
+    MarriageRegistration getById(Integer id);
+    byte[] generateFormPdf(Integer id);
 }

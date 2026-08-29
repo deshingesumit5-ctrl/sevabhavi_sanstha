@@ -24,10 +24,10 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon/10 shadow-sm px-4 py-2.5 flex items-center justify-between">
-      {/* Left: Hamburger menu */}
+      {/* Left: Hamburger menu (mobile only) */}
       <button
         onClick={onToggleSidebar}
-        className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full transition-colors focus:outline-none"
+        className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full transition-colors focus:outline-none lg:hidden"
         aria-label="Menu"
       >
         <Menu size={24} className="stroke-[2.5]" />

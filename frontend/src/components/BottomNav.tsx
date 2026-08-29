@@ -1,13 +1,13 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, UserPlus, Heart, Image as ImageIcon, PhoneCall } from 'lucide-react';
+import { Home, UserPlus, Heart, Calendar, PhoneCall } from 'lucide-react';
 
 const navItems = [
   { id: 'home',                  path: '/',                      label: 'होम',           icon: Home },
   { id: 'member-registration',   path: '/member-registration',   label: 'सदस्य नोंदणी', icon: UserPlus },
   { id: 'marriage-registration', path: '/marriage-registration', label: 'विवाह नोंदणी', icon: Heart },
-  { id: 'gallery',               path: '/gallery',               label: 'गॅलरी',         icon: ImageIcon },
-  { id: 'contact',               path: '/contact',               label: 'संपर्क साधा',   icon: PhoneCall },
+  { id: 'shibir-registration',   path: '/shibir-registration',   label: 'शिबिर नोंदणी', icon: Calendar },
+  { id: 'contact',               path: '/contact',               label: 'संपर्क',        icon: PhoneCall },
 ];
 
 export const BottomNav: React.FC = () => {

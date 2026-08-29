@@ -17,17 +17,51 @@ import { fetchAllImages } from '../../services/galleryApi';
 export const AdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [stats, setStats] = useState<DashboardStatsData>({
-    todayRegistrationsCount: 0,
-    memberTotalCount: 0,
-    memberAnnualCount: 0,
-    memberLifetimeCount: 0,
-    marriageTotalCount: 0,
-    galleryTotalCount: 0,
-    newsTotalCount: 0,
-  });
+  const getInitialStats = (): { stats: DashboardStatsData; hasCache: boolean } => {
+    const cachedMembers = api.getCachedMembers();
+    const cachedMarriages = api.getCachedMarriages();
+    const cachedStats = api.getCachedDashboardStats();
+    
+    if (cachedMembers || cachedMarriages || cachedStats) {
+      const memberTotal = cachedMembers ? cachedMembers.length : (cachedStats?.memberTotalCount ?? 0);
+      const memberAnnual = cachedMembers
+        ? cachedMembers.filter(m => !m.memberType || m.memberType.toLowerCase() === 'annual' || m.memberType.includes('वार्षिक')).length
+        : (cachedStats?.memberAnnualCount ?? 0);
+      const memberLifetime = cachedMembers
+        ? cachedMembers.filter(m => m.memberType && (m.memberType.toLowerCase() === 'lifetime' || m.memberType.includes('आजीवन'))).length
+        : (cachedStats?.memberLifetimeCount ?? 0);
+      const marriageTotal = cachedMarriages ? cachedMarriages.length : (cachedStats?.marriageTotalCount ?? 0);
 
-  const [loading, setLoading] = useState(true);
+      return {
+        stats: {
+          todayRegistrationsCount: cachedStats?.todayRegistrationsCount ?? 0,
+          memberTotalCount: memberTotal,
+          memberAnnualCount: memberAnnual,
+          memberLifetimeCount: memberLifetime,
+          marriageTotalCount: marriageTotal,
+          galleryTotalCount: cachedStats?.galleryTotalCount ?? 0,
+          newsTotalCount: cachedStats?.newsTotalCount ?? 0,
+        },
+        hasCache: true,
+      };
+    }
+    return {
+      stats: {
+        todayRegistrationsCount: 0,
+        memberTotalCount: 0,
+        memberAnnualCount: 0,
+        memberLifetimeCount: 0,
+        marriageTotalCount: 0,
+        galleryTotalCount: 0,
+        newsTotalCount: 0,
+      },
+      hasCache: false,
+    };
+  };
+
+  const initialData = getInitialStats();
+  const [stats, setStats] = useState<DashboardStatsData>(initialData.stats);
+  const [loading, setLoading] = useState(!initialData.hasCache);
 
   useEffect(() => {
     loadDashboardStats();

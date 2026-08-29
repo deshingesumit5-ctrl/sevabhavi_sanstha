@@ -47,8 +47,14 @@ public class LookupController {
     }
 
     @GetMapping("/cities")
-    public List<City> getCities(@RequestParam Integer districtId) {
-        return cityRepository.findByDistrictId(districtId);
+    public List<City> getCities(@RequestParam(required = false) Integer districtId) {
+        if (districtId != null) {
+            List<City> cities = cityRepository.findByDistrictId(districtId);
+            if (!cities.isEmpty()) {
+                return cities;
+            }
+        }
+        return cityRepository.findAll();
     }
 
     @GetMapping("/blood-groups")

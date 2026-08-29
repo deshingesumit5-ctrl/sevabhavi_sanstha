@@ -34,12 +34,10 @@ export const AdminPaymentsPage: React.FC = () => {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [editingPlanCode, setEditingPlanCode] = useState<string | null>(null);
   const [editingAmount, setEditingAmount] = useState<string>('');
-  const [loadingPlans, setLoadingPlans] = useState<boolean>(false);
   const [planSuccessMsg, setPlanSuccessMsg] = useState<string | null>(null);
 
   // QR & UPI Settings state
   const [qrSettings, setQrSettings] = useState<PaymentSettingResponse | null>(null);
-  const [loadingQr, setLoadingQr] = useState<boolean>(false);
   const [newUpiId, setNewUpiId] = useState<string>('');
 
   const [newPayeeName, setNewPayeeName] = useState<string>('');
@@ -49,8 +47,10 @@ export const AdminPaymentsPage: React.FC = () => {
   const [qrSuccessMsg, setQrSuccessMsg] = useState<string | null>(null);
 
   // Payments Table state
-  const [payments, setPayments] = useState<PaymentData[]>([]);
-  const [loadingPayments, setLoadingPayments] = useState<boolean>(false);
+  const initialCached = api.getCachedPayments();
+  const [payments, setPayments] = useState<PaymentData[]>(initialCached || []);
+  const [loading, setLoading] = useState<boolean>(!initialCached);
+  const [paymentCategoryTab, setPaymentCategoryTab] = useState<'marriage' | 'member' | 'shibir'>('marriage');
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<string>('सर्व');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -69,19 +69,15 @@ export const AdminPaymentsPage: React.FC = () => {
 
   // Load Data
   const loadPlans = async () => {
-    setLoadingPlans(true);
     try {
       const data = await api.getMembershipPlans();
       setPlans(data);
     } catch (err: any) {
       console.error('Error loading plans:', err);
-    } finally {
-      setLoadingPlans(false);
     }
   };
 
   const loadQrSettings = async () => {
-    setLoadingQr(true);
     try {
       const data = await api.getPaymentQrSettings();
       setQrSettings(data);
@@ -89,20 +85,58 @@ export const AdminPaymentsPage: React.FC = () => {
       setNewPayeeName(data.payeeName || '');
     } catch (err: any) {
       console.error('Error loading QR settings:', err);
-    } finally {
-      setLoadingQr(false);
     }
   };
 
   const loadPayments = async () => {
-    setLoadingPayments(true);
     try {
-      const data = await api.getAllPayments();
-      setPayments(data);
+      const [allPay, allMem, allMar, allShi] = await Promise.all([
+        api.getAllPayments().catch(() => []),
+        api.getAllMembers().catch(() => []),
+        api.getAllMarriages().catch(() => []),
+        api.getAllShibirs().catch(() => []),
+      ]);
+
+      const enriched = allPay.map((p) => {
+        let name = p.memberName;
+        let mobile = p.memberMobile;
+        const regType = (p.registrationType || '').toUpperCase();
+        const regId = p.registrationId || p.memberId;
+
+        if (!name || name.startsWith('सदस्य #')) {
+          if (regType === 'MARRIAGE' || (p.membershipType || '').toLowerCase().includes('marriage')) {
+            const found = allMar.find(m => m.id === regId);
+            if (found) {
+              name = found.fullName;
+              mobile = found.mobile;
+            }
+          } else if (regType === 'SHIBIR' || (p.membershipType || '').toLowerCase().includes('shibir')) {
+            const found = allShi.find(s => s.id === regId);
+            if (found) {
+              name = found.fullName;
+              mobile = found.mobile;
+            }
+          } else {
+            const found = allMem.find(m => m.id === regId);
+            if (found) {
+              name = found.fullName;
+              mobile = found.mobile;
+            }
+          }
+        }
+
+        return {
+          ...p,
+          memberName: name || 'अर्जदार #' + (regId || p.id),
+          memberMobile: mobile || p.memberMobile || '-',
+        };
+      });
+
+      setPayments(enriched);
     } catch (err: any) {
       console.error('Error loading payments:', err);
     } finally {
-      setLoadingPayments(false);
+      setLoading(false);
     }
   };
 
@@ -193,8 +227,39 @@ export const AdminPaymentsPage: React.FC = () => {
     }
   };
 
+  // Category Counts & Section Filter
+  const marriagePaymentsCount = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    return regType === 'MARRIAGE' || memType.includes('marriage') || memType.includes('विवाह');
+  }).length;
+
+  const memberPaymentsCount = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (regType !== 'MARRIAGE' && regType !== 'SHIBIR' && !memType.includes('marriage') && !memType.includes('shibir'));
+  }).length;
+
+  const shibirPaymentsCount = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    return regType === 'SHIBIR' || memType.includes('shibir') || memType.includes('शिबीर');
+  }).length;
+
+  const sectionFilteredPayments = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    if (paymentCategoryTab === 'marriage') {
+      return regType === 'MARRIAGE' || memType.includes('marriage') || memType.includes('विवाह');
+    } else if (paymentCategoryTab === 'shibir') {
+      return regType === 'SHIBIR' || memType.includes('shibir') || memType.includes('शिबीर');
+    } else {
+      return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (regType !== 'MARRIAGE' && regType !== 'SHIBIR' && !memType.includes('marriage') && !memType.includes('shibir'));
+    }
+  });
+
   // Filter Payments
-  const filteredPayments = payments.filter((p) => {
+  const filteredPayments = sectionFilteredPayments.filter((p) => {
     // Status Filter
     if (statusFilter !== 'सर्व' && p.status !== statusFilter) {
       return false;
@@ -337,7 +402,7 @@ export const AdminPaymentsPage: React.FC = () => {
             )}
           </div>
 
-          {loadingPlans ? (
+          {loading && plans.length === 0 ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-6 h-6 text-saffron animate-spin" />
             </div>
@@ -452,7 +517,7 @@ export const AdminPaymentsPage: React.FC = () => {
             )}
           </div>
 
-          {loadingQr ? (
+          {loading && !qrSettings ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 className="w-6 h-6 text-saffron animate-spin" />
             </div>
@@ -578,6 +643,57 @@ export const AdminPaymentsPage: React.FC = () => {
       {activeTab === 'list' && (
         <div className="bg-white rounded-card border border-amber-200/60 shadow-soft p-6 space-y-5">
 
+          {/* 3 Payment Section Tabs: Marriage Registrations, Member Payments, Shibir Payments */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-amber-200/60 pb-3">
+            <button
+              onClick={() => setPaymentCategoryTab('marriage')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                paymentCategoryTab === 'marriage'
+                  ? 'bg-saffron text-white shadow-md'
+                  : 'bg-cream/60 text-charcoal/70 hover:bg-amber-100/60 hover:text-saffron-dark'
+              }`}
+            >
+              <span>💍 विवाह नोंदणी पेमेंट्स</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                paymentCategoryTab === 'marriage' ? 'bg-white/20 text-white' : 'bg-saffron/10 text-saffron-dark'
+              }`}>
+                {marriagePaymentsCount}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setPaymentCategoryTab('member')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                paymentCategoryTab === 'member'
+                  ? 'bg-saffron text-white shadow-md'
+                  : 'bg-cream/60 text-charcoal/70 hover:bg-amber-100/60 hover:text-saffron-dark'
+              }`}
+            >
+              <span>👥 सदस्य नोंदणी पेमेंट्स</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                paymentCategoryTab === 'member' ? 'bg-white/20 text-white' : 'bg-saffron/10 text-saffron-dark'
+              }`}>
+                {memberPaymentsCount}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setPaymentCategoryTab('shibir')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                paymentCategoryTab === 'shibir'
+                  ? 'bg-saffron text-white shadow-md'
+                  : 'bg-cream/60 text-charcoal/70 hover:bg-amber-100/60 hover:text-saffron-dark'
+              }`}
+            >
+              <span>🎪 शिबीर नोंदणी पेमेंट्स</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                paymentCategoryTab === 'shibir' ? 'bg-white/20 text-white' : 'bg-saffron/10 text-saffron-dark'
+              }`}>
+                {shibirPaymentsCount}
+              </span>
+            </button>
+          </div>
+
           {/* Search and Filters Bar */}
           {showFilters && (
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-amber-50/20 p-4 rounded-card border border-amber-200/60">
@@ -647,9 +763,10 @@ export const AdminPaymentsPage: React.FC = () => {
           )}
 
           {/* Table View */}
-          {loadingPayments ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-saffron animate-spin" />
+          {loading && payments.length === 0 ? (
+            <div className="bg-white rounded-card border border-amber-200/60 shadow-soft p-12 text-center">
+              <div className="w-8 h-8 border-3 border-saffron border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-xs text-charcoal/50 font-semibold">माहिती लोड होत आहे...</p>
             </div>
           ) : filteredPayments.length === 0 ? (
             <div className="text-center py-12 bg-cream/10 rounded-card border border-dashed border-amber-200/60">
@@ -667,7 +784,7 @@ export const AdminPaymentsPage: React.FC = () => {
                         <span className="px-2 py-0.5 bg-amber-100/80 text-amber-900 text-[11px] font-bold rounded-lg shrink-0">
                           #{convertDigitsToMarathi(index + 1)}
                         </span>
-                        <p className="text-base font-extrabold text-[#701e2b] truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{p.memberName || 'सदस्य #' + p.memberId}</p>
+                        <p className="text-base font-normal text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{p.memberName || 'सदस्य #' + p.memberId}</p>
                       </div>
                       {getStatusBadge(p.status)}
                     </div>
@@ -754,7 +871,7 @@ export const AdminPaymentsPage: React.FC = () => {
                         <td className="p-3.5 font-bold text-center text-charcoal/70">{convertDigitsToMarathi(index + 1)}</td>
 
                         {/* Name */}
-                        <td className="p-3.5 font-bold">{p.memberName || 'सदस्य #' + p.memberId}</td>
+                        <td className="p-3.5 font-normal text-charcoal">{p.memberName || 'सदस्य #' + p.memberId}</td>
 
                         {/* Mobile */}
                         <td className="p-3.5">{p.memberMobile || '-'}</td>

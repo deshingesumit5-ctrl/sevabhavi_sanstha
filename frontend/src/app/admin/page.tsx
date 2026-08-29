@@ -4,6 +4,7 @@ import { Settings } from 'lucide-react';
 import AdminDashboardPage from './dashboard';
 import AdminMembersPage from './members';
 import AdminMarriagePage from './marriage';
+import AdminShibirPage from './shibir';
 import AdminInquiriesPage from './inquiries';
 import AdminPaymentsPage from './payments';
 import GalleryPage from '../gallery/gallery';
@@ -13,13 +14,15 @@ export const AdminPage: React.FC = () => {
   const location = useLocation();
 
   // Determine active tab based on pathname
-  let activeTab: 'dashboard' | 'members' | 'marriage' | 'inquiries' | 'payments' | 'gallery' | 'news' | 'other' = 'dashboard';
+  let activeTab: 'dashboard' | 'members' | 'marriage' | 'shibir' | 'inquiries' | 'payments' | 'gallery' | 'news' | 'other' = 'dashboard';
   if (location.pathname === '/admin/dashboard' || location.pathname === '/admin') {
     activeTab = 'dashboard';
   } else if (location.pathname === '/admin/members') {
     activeTab = 'members';
   } else if (location.pathname === '/admin/marriage-registrations') {
     activeTab = 'marriage';
+  } else if (location.pathname === '/admin/shibir-registrations') {
+    activeTab = 'shibir';
   } else if (location.pathname === '/admin/inquiries') {
     activeTab = 'inquiries';
   } else if (location.pathname === '/admin/payments') {
@@ -52,6 +55,11 @@ export const AdminPage: React.FC = () => {
           {/* Tab 3: Marriage Registrations */}
           {activeTab === 'marriage' && (
             <AdminMarriagePage />
+          )}
+
+          {/* Tab 3.5: Shibir Registrations */}
+          {activeTab === 'shibir' && (
+            <AdminShibirPage />
           )}
 
           {/* Tab 4: Inquiries */}

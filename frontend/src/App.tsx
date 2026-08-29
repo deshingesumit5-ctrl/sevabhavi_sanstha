@@ -14,6 +14,8 @@ import AboutPage from './app/about/about';
 import GalleryPage from './app/gallery/gallery';
 import MarriageRegistrationPage from './app/marriage-registration/marriage_registration';
 import MemberRegistrationPage from './app/member-registration/member-registration';
+import ShibirRegistrationPage from './app/shibir-registration/shibir-registration';
+import DonationRegistrationPage from './app/donation-registration/donation-registration';
 import ContactPage from './app/contact/contact';
 import ActivitiesPage from './app/activities/activities';
 import UpdatesPage from './app/updates/updates';
@@ -31,15 +33,14 @@ function PublicLayout() {
       {/* Top Header */}
       <Header onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-      {/* Main layout */}
-      <div className="flex-1 flex relative">
-        {/* Left Sidebar */}
-        <Sidebar
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-        />
+      {/* Horizontal Nav on Laptop / Left Drawer on Mobile */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-        {/* Content + Footer */}
+      {/* Content + Footer */}
+      <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 flex flex-col min-w-0 bg-[#FFF8F0]">
           <div className="flex-grow">
             <Routes>
@@ -50,6 +51,8 @@ function PublicLayout() {
               <Route path="gallery" element={<GalleryPage />} />
               <Route path="marriage-registration" element={<MarriageRegistrationPage />} />
               <Route path="member-registration" element={<MemberRegistrationPage />} />
+              <Route path="shibir-registration" element={<ShibirRegistrationPage />} />
+              <Route path="donation-registration" element={<DonationRegistrationPage />} />
               <Route path="contact" element={<ContactPage />} />
             </Routes>
           </div>
@@ -96,6 +99,7 @@ function App() {
           <Route path="dashboard" element={<AdminPage />} />
           <Route path="members" element={<AdminPage />} />
           <Route path="marriage-registrations" element={<AdminPage />} />
+          <Route path="shibir-registrations" element={<AdminPage />} />
           <Route path="inquiries" element={<AdminPage />} />
           <Route path="gallery-manage" element={<AdminPage />} />
           <Route path="news" element={<AdminPage />} />

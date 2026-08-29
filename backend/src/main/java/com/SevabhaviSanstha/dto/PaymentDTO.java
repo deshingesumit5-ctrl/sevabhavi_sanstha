@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 public class PaymentDTO {
     private Integer id;
     private Integer memberId;
+    private String registrationType;
+    private Integer registrationId;
     private String memberName;
     private String memberMobile;
     private BigDecimal amount;

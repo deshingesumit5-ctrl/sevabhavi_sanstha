@@ -8,6 +8,7 @@ export const Footer: React.FC = () => {
     { path: '/',                      label: 'होम' },
     { path: '/member-registration',   label: 'सदस्य नोंदणी' },
     { path: '/marriage-registration', label: 'विवाह नोंदणी' },
+    { path: '/donation-registration', label: 'देणगी नोंदणी' },
     { path: '/gallery',               label: 'गॅलरी' },
     { path: '/contact',               label: 'संपर्क साधा' },
   ];

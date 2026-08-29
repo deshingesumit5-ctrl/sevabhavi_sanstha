@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Users,
   Heart,
+  Calendar,
   HelpCircle,
   Image as ImageIcon,
   Newspaper,
@@ -26,6 +27,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard', label: 'डॅशबोर्ड', icon: LayoutDashboard, path: '/admin/dashboard' },
   { id: 'members', label: 'सदस्य नोंदणी अर्ज', icon: Users, path: '/admin/members' },
   { id: 'marriage', label: 'विवाह नोंदणी अर्ज', icon: Heart, path: '/admin/marriage-registrations' },
+  { id: 'shibir', label: 'शिबिर नोंदणी अर्ज', icon: Calendar, path: '/admin/shibir-registrations' },
   { id: 'inquiries', label: 'चौकशी अर्ज', icon: HelpCircle, path: '/admin/inquiries' },
   { id: 'gallery', label: 'गॅलरी', icon: ImageIcon, path: '/admin/gallery-manage' },
   { id: 'news', label: 'बातम्या', icon: Newspaper, path: '/admin/news' },
@@ -33,11 +35,19 @@ const navItems: NavItem[] = [
   { id: 'reports', label: 'अहवाल', icon: BarChart3, path: '/admin/reports' },
 ];
 
+import { api } from '../services/api';
+
 const AdminLayout: React.FC = () => {
   const { isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (isAdmin) {
+      api.prefetchAllAdminData();
+    }
+  }, [isAdmin]);
 
   // Redirect if not admin
   if (!isAdmin) return <Navigate to="/login" replace />;

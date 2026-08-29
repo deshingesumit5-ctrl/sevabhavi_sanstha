@@ -17,7 +17,7 @@ public class GalleryImage {
     @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "image_url", nullable = false, columnDefinition = "NVARCHAR(500)")
+    @Column(name = "image_url", nullable = false, columnDefinition = "NVARCHAR(MAX)")
     private String imageUrl;
 
     @Column(nullable = false, columnDefinition = "NVARCHAR(50)")

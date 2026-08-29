@@ -8,8 +8,9 @@ const convertDigitsToMarathi = (str: string | number): string => {
 };
 
 const AdminMarriagePage: React.FC = () => {
-  const [marriages, setMarriages] = useState<MarriageRegistrationData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialCached = api.getCachedMarriages();
+  const [marriages, setMarriages] = useState<MarriageRegistrationData[]>(initialCached || []);
+  const [loading, setLoading] = useState<boolean>(!initialCached);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
@@ -36,7 +37,6 @@ const AdminMarriagePage: React.FC = () => {
 
   const loadMarriages = async () => {
     try {
-      setLoading(true);
       const data = await api.getAllMarriages();
       const sorted = [...data].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -132,13 +132,7 @@ const AdminMarriagePage: React.FC = () => {
     return matchName && matchCity && matchBloodGroup && matchType;
   });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-4 border-saffron border-t-transparent rounded-full" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-2 sm:p-4 md:p-6 w-full space-y-5">
@@ -225,7 +219,12 @@ const AdminMarriagePage: React.FC = () => {
       )}
 
       {/* Marriage Table */}
-      {filteredMarriages.length === 0 ? (
+      {loading && marriages.length === 0 ? (
+        <div className="bg-white rounded-card border border-amber-200/60 shadow-soft p-12 text-center">
+          <div className="w-8 h-8 border-3 border-saffron border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs text-charcoal/50 font-semibold">माहिती लोड होत आहे...</p>
+        </div>
+      ) : filteredMarriages.length === 0 ? (
         <div className="bg-white rounded-card border border-charcoal/5 shadow-soft p-12 text-center">
           <Heart size={48} className="mx-auto text-charcoal/20 mb-4" />
           <p className="text-sm text-charcoal/50 font-semibold">कोणतेही विवाह नोंदणी अर्ज नाहीत.</p>
@@ -241,7 +240,7 @@ const AdminMarriagePage: React.FC = () => {
                     <span className="px-2 py-0.5 bg-amber-100/80 text-amber-900 text-[11px] font-bold rounded-lg shrink-0">
                       #{convertDigitsToMarathi(index + 1)}
                     </span>
-                    <p className="text-base font-bold text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{item.fullName}</p>
+                    <p className="text-base font-normal text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{item.fullName}</p>
                   </div>
                   {getStatusBadge(item.approvalStatus)}
                 </div>
@@ -370,7 +369,7 @@ const AdminMarriagePage: React.FC = () => {
                   <React.Fragment key={item.id}>
                     <tr className="hover:bg-cream/30 transition-colors font-medium text-charcoal">
                       <td className="p-3.5 font-bold text-center text-charcoal/70">{convertDigitsToMarathi(index + 1)}</td>
-                      <td className="p-3.5 font-bold">{item.fullName}</td>
+                      <td className="p-3.5 font-normal text-charcoal">{item.fullName}</td>
                       <td className="p-3.5">{getProfileBadge(item.profileType)}</td>
                       <td className="p-3.5">{item.mobile}</td>
                       <td className="p-3.5">{item.city}</td>

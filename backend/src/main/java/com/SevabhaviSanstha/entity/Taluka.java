@@ -2,6 +2,7 @@ package com.SevabhaviSanstha.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "talukas")
@@ -15,9 +16,11 @@ public class Taluka {
     @JoinColumn(name = "district_id", nullable = false)
     private District district;
 
-    @Column(name = "name_mr", nullable = false, length = 100)
+    @Nationalized
+    @Column(name = "name_mr", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String nameMr;
 
-    @Column(name = "name_en", nullable = false, length = 100)
+    @Nationalized
+    @Column(name = "name_en", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
     private String nameEn;
 }

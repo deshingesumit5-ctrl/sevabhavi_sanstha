@@ -13,8 +13,14 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "member_id", nullable = false)
+    @Column(name = "member_id", nullable = true)
     private Integer memberId;
+
+    @Column(name = "registration_type", length = 30)
+    private String registrationType;
+
+    @Column(name = "registration_id", nullable = true)
+    private Integer registrationId;
 
     @Column(name = "amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
@@ -28,7 +34,7 @@ public class Payment {
     @Column(name = "upi_txn_id", length = 50)
     private String upiTxnId;
 
-    @Column(name = "screenshot_url", length = 255)
+    @Column(name = "screenshot_url", columnDefinition = "NVARCHAR(MAX)")
     private String screenshotUrl;
 
     @Column(name = "payment_date")

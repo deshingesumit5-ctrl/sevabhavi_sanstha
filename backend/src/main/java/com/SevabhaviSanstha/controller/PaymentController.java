@@ -27,15 +27,18 @@ public class PaymentController {
     // Public: Submit Payment (Step 4 of Registration)
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<?> createPayment(
-            @RequestParam("memberId") Integer memberId,
+            @RequestParam(value = "memberId", required = false) Integer memberId,
+            @RequestParam(value = "registrationType", required = false, defaultValue = "MEMBER") String registrationType,
+            @RequestParam(value = "registrationId", required = false) Integer registrationId,
             @RequestParam("amount") BigDecimal amount,
-            @RequestParam("membershipType") String membershipType,
+            @RequestParam(value = "membershipType", required = false, defaultValue = "annual") String membershipType,
             @RequestParam(value = "paymentMode", required = false) String paymentMode,
-            @RequestParam("upiTxnId") String upiTxnId,
+            @RequestParam(value = "upiTxnId", required = false) String upiTxnId,
             @RequestParam(value = "file", required = false) MultipartFile file) {
         try {
-            Payment created = paymentService.createPayment(memberId, amount, membershipType, paymentMode, upiTxnId,
-                    file);
+            Integer targetId = registrationId != null ? registrationId : memberId;
+            Payment created = paymentService.createPaymentWithDetails(
+                    targetId, registrationType, targetId, amount, membershipType, paymentMode, upiTxnId, file);
             return ResponseEntity.ok(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

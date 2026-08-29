@@ -7,11 +7,17 @@ import com.SevabhaviSanstha.entity.MemberRegistration;
 import com.SevabhaviSanstha.entity.MembershipPlan;
 import com.SevabhaviSanstha.entity.Payment;
 import com.SevabhaviSanstha.entity.PaymentSetting;
+import com.SevabhaviSanstha.entity.MarriageRegistration;
+import com.SevabhaviSanstha.entity.ShibirRegistration;
+import com.SevabhaviSanstha.entity.DonationRegistration;
+import com.SevabhaviSanstha.repository.DonationRegistrationRepository;
 import com.SevabhaviSanstha.repository.GalleryImageRepository;
+import com.SevabhaviSanstha.repository.MarriageRegistrationRepository;
 import com.SevabhaviSanstha.repository.MemberRegistrationRepository;
 import com.SevabhaviSanstha.repository.MembershipPlanRepository;
 import com.SevabhaviSanstha.repository.PaymentRepository;
 import com.SevabhaviSanstha.repository.PaymentSettingRepository;
+import com.SevabhaviSanstha.repository.ShibirRegistrationRepository;
 import com.SevabhaviSanstha.service.PaymentService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -35,6 +41,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final GalleryImageRepository galleryImageRepository;
     private final MemberRegistrationRepository memberRegistrationRepository;
+    private final MarriageRegistrationRepository marriageRegistrationRepository;
+    private final ShibirRegistrationRepository shibirRegistrationRepository;
+    private final DonationRegistrationRepository donationRegistrationRepository;
 
     @Value("${app.upload.dir:uploads/gallery}")
     private String uploadDir;
@@ -43,12 +52,18 @@ public class PaymentServiceImpl implements PaymentService {
                               PaymentSettingRepository settingRepository,
                               PaymentRepository paymentRepository,
                               GalleryImageRepository galleryImageRepository,
-                              MemberRegistrationRepository memberRegistrationRepository) {
+                              MemberRegistrationRepository memberRegistrationRepository,
+                              MarriageRegistrationRepository marriageRegistrationRepository,
+                              ShibirRegistrationRepository shibirRegistrationRepository,
+                              DonationRegistrationRepository donationRegistrationRepository) {
         this.planRepository = planRepository;
         this.settingRepository = settingRepository;
         this.paymentRepository = paymentRepository;
         this.galleryImageRepository = galleryImageRepository;
         this.memberRegistrationRepository = memberRegistrationRepository;
+        this.marriageRegistrationRepository = marriageRegistrationRepository;
+        this.shibirRegistrationRepository = shibirRegistrationRepository;
+        this.donationRegistrationRepository = donationRegistrationRepository;
     }
 
     private void seedInitialDataIfEmpty() {
@@ -68,6 +83,16 @@ public class PaymentServiceImpl implements PaymentService {
             lifetime.setUpdatedBy("system");
             lifetime.setUpdatedAt(LocalDateTime.now());
             planRepository.save(lifetime);
+        }
+
+        if (planRepository.findByPlanCode("shibir").isEmpty()) {
+            MembershipPlan shibir = new MembershipPlan();
+            shibir.setPlanCode("shibir");
+            shibir.setPlanNameMr("शिबिर नोंदणी शुल्क");
+            shibir.setAmount(new BigDecimal("200.00"));
+            shibir.setUpdatedBy("system");
+            shibir.setUpdatedAt(LocalDateTime.now());
+            planRepository.save(shibir);
         }
 
         if (settingRepository.count() == 0) {
@@ -215,17 +240,72 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public Payment createPayment(Integer memberId, BigDecimal amount, String membershipType,
                                   String paymentMode, String upiTxnId, MultipartFile file) throws Exception {
-        if (upiTxnId == null || upiTxnId.trim().isEmpty()) {
+        return createPaymentWithDetails(memberId, "MEMBER", memberId, amount, membershipType, paymentMode, upiTxnId, file);
+    }
+
+    @Override
+    @Transactional
+    public Payment createPaymentWithDetails(Integer memberId, String registrationType, Integer registrationId,
+                                          BigDecimal amount, String membershipType, String paymentMode,
+                                          String upiTxnId, MultipartFile file) throws Exception {
+        boolean isCash = "Cash".equalsIgnoreCase(paymentMode) || "कॅश".equalsIgnoreCase(paymentMode);
+        if (!isCash && (upiTxnId == null || upiTxnId.trim().isEmpty())) {
             throw new IllegalArgumentException("UPI ट्रान्झॅक्शन आयडी आवश्यक आहे.");
         }
 
         seedInitialDataIfEmpty();
-        String planCode = (membershipType != null && !membershipType.isBlank()) ? membershipType.trim() : "annual";
-        MembershipPlan plan = planRepository.findByPlanCode(planCode)
-                .orElseGet(() -> planRepository.findByPlanCode("annual")
-                        .orElseThrow(() -> new IllegalArgumentException("अवैध सदस्यत्व प्रकार: " + planCode)));
 
-        BigDecimal actualAmount = plan.getAmount();
+        Integer targetRegId = registrationId != null ? registrationId : memberId;
+        String normalizedType = (registrationType != null && !registrationType.isBlank())
+                ? registrationType.trim().toUpperCase()
+                : "MEMBER";
+
+        if (targetRegId == null) {
+            throw new IllegalArgumentException("नोंदणी क्रमांक (ID) आवश्यक आहे.");
+        }
+
+        // Polymorphic validation: verify registration exists in the appropriate table before saving payment
+        switch (normalizedType) {
+            case "MEMBER":
+                if (!memberRegistrationRepository.existsById(targetRegId)) {
+                    throw new IllegalArgumentException("सभासद नोंदणी सापडली नाही (ID: " + targetRegId + ")");
+                }
+                break;
+            case "MARRIAGE":
+                if (!marriageRegistrationRepository.existsById(targetRegId)) {
+                    throw new IllegalArgumentException("विवाह नोंदणी सापडली नाही (ID: " + targetRegId + ")");
+                }
+                break;
+            case "SHIBIR":
+                if (!shibirRegistrationRepository.existsById(targetRegId)) {
+                    throw new IllegalArgumentException("शिबिर नोंदणी सापडली नाही (ID: " + targetRegId + ")");
+                }
+                break;
+            case "DONATION":
+                if (!donationRegistrationRepository.existsById(targetRegId)) {
+                    throw new IllegalArgumentException("देणगी नोंदणी सापडली नाही (ID: " + targetRegId + ")");
+                }
+                break;
+            default:
+                if (!memberRegistrationRepository.existsById(targetRegId)
+                        && !marriageRegistrationRepository.existsById(targetRegId)
+                        && !shibirRegistrationRepository.existsById(targetRegId)
+                        && !donationRegistrationRepository.existsById(targetRegId)) {
+                    throw new IllegalArgumentException("नोंदणी माहिती सापडली नाही (प्रकार: " + normalizedType + ", ID: " + targetRegId + ")");
+                }
+                break;
+        }
+
+        BigDecimal actualAmount = amount;
+        if (actualAmount == null || actualAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            String planCode = (membershipType != null && !membershipType.isBlank()) ? membershipType.trim() : "annual";
+            MembershipPlan plan = planRepository.findByPlanCode(planCode).orElse(null);
+            if (plan != null) {
+                actualAmount = plan.getAmount();
+            } else {
+                actualAmount = new BigDecimal("100.00");
+            }
+        }
 
         String screenshotUrl = null;
         if (file != null && !file.isEmpty()) {
@@ -246,14 +326,17 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         Payment payment = new Payment();
-        payment.setMemberId(memberId);
+        // memberId is only set for member registrations; set to null for other types to decouple from legacy member_registrations FK
+        payment.setMemberId("MEMBER".equals(normalizedType) ? targetRegId : null);
+        payment.setRegistrationType(normalizedType);
+        payment.setRegistrationId(targetRegId);
         payment.setAmount(actualAmount);
-        payment.setMembershipType(plan.getPlanCode());
-        payment.setPaymentMode(paymentMode);
-        payment.setUpiTxnId(upiTxnId.trim());
+        payment.setMembershipType(membershipType != null ? membershipType : "annual");
+        payment.setPaymentMode(paymentMode != null ? paymentMode : (isCash ? "Cash" : "GPay"));
+        payment.setUpiTxnId(upiTxnId != null ? upiTxnId.trim() : (isCash ? "CASH-" + System.currentTimeMillis() : ""));
         payment.setScreenshotUrl(screenshotUrl);
         payment.setPaymentDate(LocalDateTime.now());
-        payment.setStatus("सादर केले");
+        payment.setStatus(isCash ? "पडताळलेले" : "सादर केले");
 
         return paymentRepository.save(payment);
     }
@@ -267,6 +350,8 @@ public class PaymentServiceImpl implements PaymentService {
             PaymentDTO dto = new PaymentDTO();
             dto.setId(p.getId());
             dto.setMemberId(p.getMemberId());
+            dto.setRegistrationType(p.getRegistrationType());
+            dto.setRegistrationId(p.getRegistrationId());
             dto.setAmount(p.getAmount());
             dto.setMembershipType(p.getMembershipType());
             dto.setPaymentMode(p.getPaymentMode());
@@ -278,11 +363,34 @@ public class PaymentServiceImpl implements PaymentService {
             dto.setVerifiedAt(p.getVerifiedAt());
             dto.setRejectionReason(p.getRejectionReason());
 
-            if (p.getMemberId() != null) {
-                MemberRegistration member = memberRegistrationRepository.findById(p.getMemberId()).orElse(null);
-                if (member != null) {
-                    dto.setMemberName(member.getFullName());
-                    dto.setMemberMobile(member.getMobile());
+            Integer regId = p.getRegistrationId() != null ? p.getRegistrationId() : p.getMemberId();
+            String regType = p.getRegistrationType() != null ? p.getRegistrationType().toUpperCase() : "";
+
+            if (regId != null) {
+                if ("MARRIAGE".equals(regType) || (p.getMembershipType() != null && p.getMembershipType().toLowerCase().contains("marriage"))) {
+                    MarriageRegistration marriage = marriageRegistrationRepository.findById(regId).orElse(null);
+                    if (marriage != null) {
+                        dto.setMemberName(marriage.getFullName());
+                        dto.setMemberMobile(marriage.getMobile());
+                    }
+                } else if ("SHIBIR".equals(regType) || (p.getMembershipType() != null && p.getMembershipType().toLowerCase().contains("shibir"))) {
+                    ShibirRegistration shibir = shibirRegistrationRepository.findById(regId).orElse(null);
+                    if (shibir != null) {
+                        dto.setMemberName(shibir.getFullName());
+                        dto.setMemberMobile(shibir.getMobile());
+                    }
+                } else if ("DONATION".equals(regType) || (p.getMembershipType() != null && p.getMembershipType().toLowerCase().contains("donation"))) {
+                    DonationRegistration donation = donationRegistrationRepository.findById(regId).orElse(null);
+                    if (donation != null) {
+                        dto.setMemberName(donation.getFullName());
+                        dto.setMemberMobile(donation.getMobile());
+                    }
+                } else {
+                    MemberRegistration member = memberRegistrationRepository.findById(regId).orElse(null);
+                    if (member != null) {
+                        dto.setMemberName(member.getFullName());
+                        dto.setMemberMobile(member.getMobile());
+                    }
                 }
             }
 
@@ -307,22 +415,40 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment updated = paymentRepository.save(payment);
 
-        // Also update member registration status
-        if (payment.getMemberId() != null) {
-            MemberRegistration member = memberRegistrationRepository.findById(payment.getMemberId()).orElse(null);
-            if (member != null) {
-                if ("पडताळलेले".equalsIgnoreCase(status)) {
-                    member.setApprovalStatus("APPROVED");
-                } else if ("नाकारलेले".equalsIgnoreCase(status)) {
-                    member.setApprovalStatus("REJECTED");
-                }
-                memberRegistrationRepository.save(member);
+        // Also update registration status across polymorphic types
+        Integer regId = updated.getRegistrationId() != null ? updated.getRegistrationId() : updated.getMemberId();
+        String regType = updated.getRegistrationType() != null ? updated.getRegistrationType().toUpperCase() : "MEMBER";
+
+        if (regId != null) {
+            String appStatus = "पडताळलेले".equalsIgnoreCase(status) ? "APPROVED" : ("नाकारलेले".equalsIgnoreCase(status) ? "REJECTED" : "PENDING");
+            if ("MARRIAGE".equals(regType) || (updated.getMembershipType() != null && updated.getMembershipType().toLowerCase().contains("marriage"))) {
+                marriageRegistrationRepository.findById(regId).ifPresent(m -> {
+                    m.setApprovalStatus(appStatus);
+                    marriageRegistrationRepository.save(m);
+                });
+            } else if ("SHIBIR".equals(regType) || (updated.getMembershipType() != null && updated.getMembershipType().toLowerCase().contains("shibir"))) {
+                shibirRegistrationRepository.findById(regId).ifPresent(s -> {
+                    s.setApprovalStatus(appStatus);
+                    shibirRegistrationRepository.save(s);
+                });
+            } else if ("DONATION".equals(regType) || (updated.getMembershipType() != null && updated.getMembershipType().toLowerCase().contains("donation"))) {
+                donationRegistrationRepository.findById(regId).ifPresent(d -> {
+                    d.setApprovalStatus(appStatus);
+                    donationRegistrationRepository.save(d);
+                });
+            } else {
+                memberRegistrationRepository.findById(regId).ifPresent(m -> {
+                    m.setApprovalStatus(appStatus);
+                    memberRegistrationRepository.save(m);
+                });
             }
         }
 
         PaymentDTO dto = new PaymentDTO();
         dto.setId(updated.getId());
         dto.setMemberId(updated.getMemberId());
+        dto.setRegistrationType(updated.getRegistrationType());
+        dto.setRegistrationId(updated.getRegistrationId());
         dto.setAmount(updated.getAmount());
         dto.setMembershipType(updated.getMembershipType());
         dto.setPaymentMode(updated.getPaymentMode());
@@ -334,11 +460,27 @@ public class PaymentServiceImpl implements PaymentService {
         dto.setVerifiedAt(updated.getVerifiedAt());
         dto.setRejectionReason(updated.getRejectionReason());
 
-        if (updated.getMemberId() != null) {
-            MemberRegistration member = memberRegistrationRepository.findById(updated.getMemberId()).orElse(null);
-            if (member != null) {
-                dto.setMemberName(member.getFullName());
-                dto.setMemberMobile(member.getMobile());
+        if (regId != null) {
+            if ("MARRIAGE".equals(regType)) {
+                marriageRegistrationRepository.findById(regId).ifPresent(m -> {
+                    dto.setMemberName(m.getFullName());
+                    dto.setMemberMobile(m.getMobile());
+                });
+            } else if ("SHIBIR".equals(regType)) {
+                shibirRegistrationRepository.findById(regId).ifPresent(s -> {
+                    dto.setMemberName(s.getFullName());
+                    dto.setMemberMobile(s.getMobile());
+                });
+            } else if ("DONATION".equals(regType)) {
+                donationRegistrationRepository.findById(regId).ifPresent(d -> {
+                    dto.setMemberName(d.getFullName());
+                    dto.setMemberMobile(d.getMobile());
+                });
+            } else {
+                memberRegistrationRepository.findById(regId).ifPresent(m -> {
+                    dto.setMemberName(m.getFullName());
+                    dto.setMemberMobile(m.getMobile());
+                });
             }
         }
 

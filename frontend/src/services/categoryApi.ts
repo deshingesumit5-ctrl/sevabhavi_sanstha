@@ -1,6 +1,6 @@
-import { getAdminHeaders } from "./api";
+import { getAdminHeaders, getApiBaseUrl } from "./api";
 
-const API_BASE = `http://192.168.1.7:8080/api/categories`;
+const getCategoryApiBase = () => `${getApiBaseUrl()}/categories`;
 
 export interface Category {
   id: number;
@@ -15,7 +15,7 @@ export interface Category {
 }
 
 export async function fetchCategories(): Promise<Category[]> {
-  const res = await fetch(API_BASE);
+  const res = await fetch(getCategoryApiBase());
   if (!res.ok) throw new Error("श्रेण्या लोड करता आल्या नाहीत");
   return res.json();
 }
@@ -32,7 +32,7 @@ export async function createCategory(params: {
   if (params.description) formData.append("description", params.description);
   if (params.categoryKey) formData.append("categoryKey", params.categoryKey);
 
-  const res = await fetch(API_BASE, {
+  const res = await fetch(getCategoryApiBase(), {
     method: "POST",
     headers: {
       ...getAdminHeaders(),
@@ -55,7 +55,7 @@ export async function updateCategory(
   formData.append("title", params.title);
   if (params.description !== undefined) formData.append("description", params.description);
 
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await fetch(`${getCategoryApiBase()}/${id}`, {
     method: "PUT",
     headers: {
       ...getAdminHeaders(),
@@ -70,7 +70,7 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/${id}`, {
+  const res = await fetch(`${getCategoryApiBase()}/${id}`, {
     method: "DELETE",
     headers: {
       ...getAdminHeaders(),
