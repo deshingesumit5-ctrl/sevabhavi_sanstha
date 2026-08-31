@@ -133,7 +133,8 @@ export function imageUrl(path: string): string {
   if (!path) return "";
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const host = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+  const protocol = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:';
   const envServer = (import.meta as any).env?.VITE_SERVER_URL;
-  const serverBase = envServer || `http://${host}:8080`;
+  const serverBase = envServer || `${protocol}//${host}:8080`;
   return `${serverBase}${path.startsWith('/') ? '' : '/'}${path}`;
 }

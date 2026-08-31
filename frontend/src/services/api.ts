@@ -1,3 +1,10 @@
+const getProtocol = (): string => {
+  if (typeof window !== 'undefined' && window.location && window.location.protocol) {
+    return window.location.protocol;
+  }
+  return 'http:';
+};
+
 const getHost = (): string => {
   if (typeof window !== 'undefined' && window.location && window.location.hostname) {
     return window.location.hostname;
@@ -8,7 +15,7 @@ const getHost = (): string => {
 export const getApiBaseUrl = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl) return envUrl;
-  return `http://${getHost()}:8080/api`;
+  return `${getProtocol()}//${getHost()}:8080/api`;
 };
 
 export const BASE_URL = getApiBaseUrl();
