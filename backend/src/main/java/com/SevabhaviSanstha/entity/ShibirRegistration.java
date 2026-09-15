@@ -2,7 +2,6 @@ package com.SevabhaviSanstha.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.hibernate.annotations.Nationalized;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,24 +14,24 @@ public class ShibirRegistration {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Nationalized
-    @Column(name = "shibir_name", nullable = false, length = 255, columnDefinition = "NVARCHAR(255)")
+
+    @Column(name = "shibir_name", nullable = false, length = 255, columnDefinition = "VARCHAR(255)")
     private String shibirName;
 
-    @Nationalized
-    @Column(name = "shibir_date", length = 50, columnDefinition = "NVARCHAR(50)")
+  
+    @Column(name = "shibir_date", length = 50, columnDefinition = "VARCHAR(50)")
     private String shibirDate;
 
-    @Nationalized
-    @Column(name = "shibir_location", length = 255, columnDefinition = "NVARCHAR(255)")
+
+    @Column(name = "shibir_location", length = 255, columnDefinition = "VARCHAR(255)")
     private String shibirLocation;
 
-    @Nationalized
-    @Column(name = "full_name", nullable = false, length = 255, columnDefinition = "NVARCHAR(255)")
+   
+    @Column(name = "full_name", nullable = false, length = 255, columnDefinition = "VARCHAR(255)")
     private String fullName;
 
-    @Nationalized
-    @Column(name = "full_address", nullable = false, length = 500, columnDefinition = "NVARCHAR(500)")
+
+    @Column(name = "full_address", nullable = false, length = 500, columnDefinition = "VARCHAR(500)")
     private String fullAddress;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -47,16 +46,16 @@ public class ShibirRegistration {
     @JoinColumn(name = "taluka_id", nullable = false)
     private Taluka taluka;
 
-    @Nationalized
-    @Column(name = "city_village", nullable = false, length = 100, columnDefinition = "NVARCHAR(100)")
+  
+    @Column(name = "city_village", nullable = false, length = 100, columnDefinition = "VARCHAR(100)")
     private String cityVillage;
 
-    @Nationalized
-    @Column(name = "occupation", length = 100, columnDefinition = "NVARCHAR(100)")
+
+    @Column(name = "occupation", length = 100, columnDefinition = "VARCHAR(100)")
     private String occupation;
 
-    @Nationalized
-    @Column(name = "education", length = 100, columnDefinition = "NVARCHAR(100)")
+
+    @Column(name = "education", length = 100, columnDefinition = "VARCHAR(100)")
     private String education;
 
     @Column(name = "birth_date", nullable = false)
@@ -74,15 +73,15 @@ public class ShibirRegistration {
     @Column(name = "participated_earlier")
     private Boolean participatedEarlier = false;
 
-    @Nationalized
-    @Column(name = "previous_event_name", length = 255, columnDefinition = "NVARCHAR(255)")
+
+    @Column(name = "previous_event_name", length = 255, columnDefinition = "VARCHAR(255)")
     private String previousEventName;
 
-    @Nationalized
-    @Column(name = "special_info", length = 1000, columnDefinition = "NVARCHAR(1000)")
+   
+    @Column(name = "special_info", length = 1000, columnDefinition = "VARCHAR(1000)")
     private String specialInfo;
 
-    @Column(name = "passport_photo_url", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "passport_photo_url", columnDefinition = "LONGTEXT")
     private String passportPhotoUrl;
 
     @Column(name = "payment_mode", length = 30)
@@ -94,7 +93,7 @@ public class ShibirRegistration {
     @Column(name = "upi_txn_id", length = 50)
     private String upiTxnId;
 
-    @Column(name = "screenshot_url", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "screenshot_url", columnDefinition = "LONGTEXT")
     private String screenshotUrl;
 
     @Column(name = "payment_status", length = 30)

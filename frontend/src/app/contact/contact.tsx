@@ -195,9 +195,9 @@ export const ContactPage: React.FC = () => {
                   <MapPin size={20} className="text-saffron shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-charcoal/90" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पुणे कार्यालय पत्ता:</h4>
-                    {/* <p className="text-charcoal/70 mt-0.5 leading-relaxed">
-                      दापोली मंडणगड सेवाभावी संस्था, पुणे कार्यालय, सदाशिव पेठ, पुणे - ४११०३०.
-                    </p> */}
+                    <p className="text-charcoal/70 mt-0.5 leading-relaxed">
+                      आकुर्डी, पुणे
+                    </p>
                   </div>
                 </li>
 
@@ -205,9 +205,9 @@ export const ContactPage: React.FC = () => {
                   <Phone size={20} className="text-saffron shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-charcoal/90" style={{ fontFamily: "'Baloo 2', sans-serif" }}>संपर्क क्रमांक:</h4>
-                    {/* <p className="text-charcoal/70 mt-0.5 leading-relaxed">
-                      +91 ९८७६५ ४३२१० / ९८२३४ ५६७८९
-                    </p> */}
+                    <p className="text-charcoal/70 mt-0.5 leading-relaxed">
+                      9970535876 / 7350293376 / 9226743239
+                    </p>
                   </div>
                 </li>
 
@@ -215,9 +215,9 @@ export const ContactPage: React.FC = () => {
                   <Mail size={20} className="text-saffron shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-charcoal/90" style={{ fontFamily: "'Baloo 2', sans-serif" }}>ईमेल पत्ता:</h4>
-                    {/* <p className="text-charcoal/70 mt-0.5 leading-relaxed">
-                      info@dapolimandangadngo.org
-                    </p> */}
+                    <p className="text-charcoal/70 mt-0.5 leading-relaxed">
+                      dmsevabhavisanstha@gmail.com
+                    </p>
                   </div>
                 </li>
               </ul>
@@ -255,12 +255,28 @@ export const ContactPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <ImagePlaceholder
-                  aspectRatio="aspect-video"
-                  label="गूगल नकाशा स्थान अपलोड करा (पुणे कार्यालय)"
-                  className="w-full h-[220px]"
-                  onFileSelect={handleMapUpload}
-                />
+                <div className="relative w-full h-[220px] rounded-card overflow-hidden">
+                  <iframe
+                    title="Google Map Location"
+                    src="https://maps.google.com/maps?q=18.657723,73.807135&z=15&output=embed"
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    allowFullScreen
+                  />
+                  {isAdmin && (
+                    <div className="absolute top-2 right-2 flex gap-2 z-20">
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('contact-map-input')?.click()}
+                        className="p-2 bg-white/90 hover:bg-white text-maroon rounded-full shadow-md"
+                        title="फोटो बदला"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               <input
                 id="contact-map-input"
