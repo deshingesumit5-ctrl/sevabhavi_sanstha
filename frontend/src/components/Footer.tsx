@@ -54,12 +54,14 @@ export const Footer: React.FC = () => {
           <h3 className="text-lg font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
             संपर्क तपशील
           </h3>
-          <ul className="space-y-3.5 text-sm font-body text-charcoal/80">
+          <ul className="space-y-3.5 text-sm font-semibold text-charcoal/80">
             <li className="flex items-center gap-3">
               <Phone size={18} className="text-saffron shrink-0" />
+              <span>9970535876 / 7350293376 / 9226743239</span>
             </li>
             <li className="flex items-center gap-3">
               <Mail size={18} className="text-saffron shrink-0" />
+              <span>dmsevabhavisanstha@gmail.com</span>
             </li>
           </ul>
         </div>
