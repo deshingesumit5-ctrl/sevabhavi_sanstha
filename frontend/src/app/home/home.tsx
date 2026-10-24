@@ -496,7 +496,7 @@ export const HomePage: React.FC = () => {
 
       {/* 3. Dark Stat Strip */}
       <section className="w-full bg-[#271E17] text-white py-5 px-2 sm:px-4 section-gap-top">
-        <div className="max-w-6xl mx-auto grid grid-cols-4 divide-x divide-white/10 text-center items-center">
+        <div className="	max-w-5xl mx-auto grid grid-cols-4 divide-x divide-white/10 text-center items-center">
 
           <div className="flex flex-col items-center px-1 sm:px-3">
             <TrendingUp className="text-saffron mb-1 w-5 h-5 sm:w-6 sm:h-6" />
@@ -526,7 +526,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 4. About Us Preview Card */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="bg-white rounded-3xl border border-amber-200/60 shadow-soft p-6 md:p-8 grid grid-cols-2 gap-4 md:gap-8 items-center">
 
           {/* Left Text Content */}
@@ -601,7 +601,7 @@ export const HomePage: React.FC = () => {
 
       {/* 5. Initiatives Section */}
       <section className="w-full px-4 py-8 bg-cream/30 border-y border-maroon/5">
-        <div className="max-w-6xl mx-auto">
+        <div className="	max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6 gap-3">
             <h2 className="font-heading text-2xl md:text-3xl font-bold text-maroon">
@@ -751,7 +751,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. CTA Banner */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="bg-gradient-to-r from-saffron to-maroon text-white rounded-card-lg p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-soft-lg">
 
           <div className="flex items-center gap-4 text-center md:text-left">
@@ -780,7 +780,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 7. Latest Updates Section */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="flex items-center justify-between mb-6 gap-3">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-maroon">
             नवीन अपडेट्स

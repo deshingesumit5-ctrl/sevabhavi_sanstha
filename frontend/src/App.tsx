@@ -13,6 +13,9 @@ import HomePage from './app/home/home';
 import AboutPage from './app/about/about';
 import GalleryPage from './app/gallery/gallery';
 import MarriageRegistrationPage from './app/marriage-registration/marriage_registration';
+import MatrimonyLanding from './app/marriage-registration/MatrimonyLanding';
+import MatrimonyProfileDetail from './app/marriage-registration/MatrimonyProfileDetail';
+import MatrimonyLoginPage from './app/marriage-registration/MatrimonyLoginPage';
 import MemberRegistrationPage from './app/member-registration/member-registration';
 import ShibirRegistrationPage from './app/shibir-registration/shibir-registration';
 import DonationRegistrationPage from './app/donation-registration/donation-registration';
@@ -49,7 +52,11 @@ function PublicLayout() {
               <Route path="activities" element={<ActivitiesPage />} />
               <Route path="updates" element={<UpdatesPage />} />
               <Route path="gallery" element={<GalleryPage />} />
-              <Route path="marriage-registration" element={<MarriageRegistrationPage />} />
+              <Route path="marriage-registration" element={<MatrimonyLanding />} />
+              <Route path="marriage-registration/register" element={<MarriageRegistrationPage />} />
+              <Route path="marriage-registration/profile/:id" element={<MatrimonyProfileDetail />} />
+              <Route path="marriage-profile/:id" element={<MatrimonyProfileDetail />} />
+              <Route path="marriage-login" element={<MatrimonyLoginPage />} />
               <Route path="member-registration" element={<MemberRegistrationPage />} />
               <Route path="shibir-registration" element={<ShibirRegistrationPage />} />
               <Route path="donation-registration" element={<DonationRegistrationPage />} />

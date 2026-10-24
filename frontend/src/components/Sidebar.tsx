@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +24,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const isMatrimonyRoute =
+    location.pathname.startsWith('/marriage-registration') ||
+    location.pathname.startsWith('/marriage-profile') ||
+    location.pathname === '/marriage-login';
 
   const publicMenuItems = [
     { id: 'home', path: '/', label: 'होम', icon: Home },
@@ -123,7 +129,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </button>
             );
           })}
+
+
         </nav>
+
 
         {/* Sidebar Footer - Mobile Only */}
         <div className="p-4 border-t border-maroon/5 bg-cream/20 text-center lg:hidden">

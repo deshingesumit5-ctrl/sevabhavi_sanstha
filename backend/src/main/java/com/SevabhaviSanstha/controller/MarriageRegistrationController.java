@@ -27,18 +27,29 @@ public class MarriageRegistrationController {
     }
 
     @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<MarriageRegistration>> getAllRegistrations() {
         return ResponseEntity.ok(marriageRegistrationService.getAllRegistrations());
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MarriageRegistration> updateStatus(
             @PathVariable Integer id,
-            @RequestParam String status) {
-        MarriageRegistration updated = marriageRegistrationService.updateApprovalStatus(id, status);
+            @RequestParam String status,
+            @RequestParam(required = false) String reason) {
+        MarriageRegistration updated = marriageRegistrationService.updateApprovalStatusWithReason(id, status, reason);
         return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping(value = "/upload-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadPhoto(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            String url = marriageRegistrationService.uploadPhoto(file);
+            return ResponseEntity.ok(Map.of("url", url));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "फोटो अपलोड अयशस्वी: " + e.getMessage()));
+        }
     }
 
     // PDF Download Form endpoint

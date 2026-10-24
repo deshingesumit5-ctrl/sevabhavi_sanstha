@@ -46,7 +46,7 @@ export default function Gallery() {
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="	max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-orange-800 mb-6" style={{ fontFamily: "'Baloo 2', sans-serif" }}>गॅलरी</h1>
 
       {IS_ADMIN && (

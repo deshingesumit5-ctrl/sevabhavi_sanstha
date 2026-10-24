@@ -86,7 +86,7 @@ export const AboutPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full">
       {/* About Us Card Section */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="bg-white rounded-3xl border border-amber-200/60 shadow-soft p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-10 items-start">
           <div className="flex flex-col items-start justify-center">
             <h2 className="text-2xl md:text-3xl font-extrabold text-[#d9531e]" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
@@ -161,7 +161,7 @@ export const AboutPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top pb-8">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top pb-8">
         <h2
           className="text-center text-xl md:text-2xl font-extrabold text-[#d9531e] mb-6"
           style={{ fontFamily: "'Baloo 2', sans-serif" }}

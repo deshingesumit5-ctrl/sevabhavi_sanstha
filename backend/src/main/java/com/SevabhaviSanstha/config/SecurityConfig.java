@@ -130,11 +130,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/member-registration").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/member-registration/**").authenticated()
 
-                        // 10. Marriage Registrations (Public POST & PDF, Admin GET/PUT)
+                        // 10. Marriage Registrations & Matrimony Module
                         .requestMatchers(HttpMethod.POST, "/api/marriage-registration").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/marriage-registration/upload-photo", "/api/matrimony/upload-photo").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/marriage-registration/form/**",
                                 "/api/marriage-registration/*/pdf")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/matrimony/profiles", "/api/matrimony/profiles/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/matrimony/login", "/api/matrimony/reset-password").permitAll()
+                        .requestMatchers("/api/matrimony/profile-full/**", "/api/matrimony/favorites", "/api/matrimony/favorites/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/marriage-registration").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/marriage-registration/**").authenticated()
 

@@ -302,7 +302,7 @@ export const GalleryPage: React.FC = () => {
       </section>
 
       {/* 2. Category Tabs */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-maroon/5 pb-4">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none justify-start flex-1">
             {categories.map((tab) => (
@@ -363,7 +363,7 @@ export const GalleryPage: React.FC = () => {
       </section>
 
       {/* 3. Photo Placeholders Grid */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="bg-white rounded-card-lg border border-maroon/5 shadow-soft p-6">
           {loadingPhotos ? (
             <div className="text-center py-12">

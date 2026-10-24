@@ -125,7 +125,7 @@ export const HomePage: React.FC = () => {
 
       {/* 3. Dark Stat Strip */}
       <section className="w-full bg-[#271E17] text-white py-6 px-4">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div className="	max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           
           <div className="flex flex-col items-center">
             <TrendingUp size={24} className="text-saffron mb-1.5" />
@@ -155,7 +155,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 4. About Us Preview Card */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 py-8 	max-w-5xl mx-auto">
         <div className="bg-white rounded-card-lg border border-maroon/5 shadow-soft p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           
           {/* Left Text Content */}
@@ -185,7 +185,7 @@ export const HomePage: React.FC = () => {
 
       {/* 5. Initiatives Section */}
       <section className="w-full px-4 py-8 bg-cream/30 border-y border-maroon/5">
-        <div className="max-w-6xl mx-auto">
+        <div className="	max-w-5xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl md:text-3xl font-bold font-heading text-maroon">
@@ -229,7 +229,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 6. CTA Banner */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 py-8 	max-w-5xl mx-auto">
         <div className="bg-gradient-to-r from-saffron to-maroon text-white rounded-card-lg p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-soft-lg">
           
           <div className="flex items-center gap-4 text-center md:text-left">
@@ -258,7 +258,7 @@ export const HomePage: React.FC = () => {
       </section>
 
       {/* 7. Latest Updates Section */}
-      <section className="w-full px-4 py-8 max-w-6xl mx-auto">
+      <section className="w-full px-4 py-8 	max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl md:text-3xl font-bold font-heading text-maroon">
             नवीन अपडेट्स

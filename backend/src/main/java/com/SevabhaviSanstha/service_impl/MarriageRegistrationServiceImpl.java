@@ -1,21 +1,38 @@
 package com.SevabhaviSanstha.service_impl;
 
+import com.SevabhaviSanstha.config.JwtTokenUtil;
+import com.SevabhaviSanstha.dto.*;
 import com.SevabhaviSanstha.entity.MarriageRegistration;
+import com.SevabhaviSanstha.entity.MatrimonyFavorite;
 import com.SevabhaviSanstha.repository.MarriageRegistrationRepository;
+import com.SevabhaviSanstha.repository.MatrimonyFavoriteRepository;
 import com.SevabhaviSanstha.service.MarriageRegistrationService;
 import com.SevabhaviSanstha.util.PdfFontUtil;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.*;
 import com.lowagie.text.pdf.draw.LineSeparator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.persistence.criteria.Predicate;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.file.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class MarriageRegistrationServiceImpl implements MarriageRegistrationService {
@@ -23,8 +40,62 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     @Autowired
     private MarriageRegistrationRepository marriageRegistrationRepository;
 
+    @Autowired
+    private MatrimonyFavoriteRepository matrimonyFavoriteRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
+    @Value("${app.upload.marriage.dir:uploads/marriage}")
+    private String uploadMarriageDir;
+
     @Override
+    @Transactional
     public MarriageRegistration registerMarriage(MarriageRegistration registration) {
+        // Validation: duplicate mobile check
+        if (registration.getMobile() != null && marriageRegistrationRepository.existsByMobile(registration.getMobile().trim())) {
+            throw new IllegalArgumentException("या मोबाईल क्रमांकासह आधीच विवाह नोंदणी झालेली आहे (" + registration.getMobile() + ").");
+        }
+
+        // Duplicate email check
+        if (registration.getEmail() != null && !registration.getEmail().trim().isEmpty() &&
+                marriageRegistrationRepository.existsByEmail(registration.getEmail().trim())) {
+            throw new IllegalArgumentException("या ईमेल आयडीसह आधीच विवाह नोंदणी झालेली आहे (" + registration.getEmail() + ").");
+        }
+
+        // Password hashing with BCrypt
+        if (registration.getPasswordHash() != null && !registration.getPasswordHash().trim().isEmpty()) {
+            registration.setPasswordHash(passwordEncoder.encode(registration.getPasswordHash().trim()));
+        }
+
+        // Package settings
+        if (registration.getPackageType() == null || registration.getPackageType().isBlank()) {
+            registration.setPackageType("6_MONTHS");
+        }
+        if (registration.getPackageAmount() == null) {
+            if ("3_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
+                registration.setPackageAmount(new BigDecimal("300.00"));
+                registration.setSubscriptionDurationMonths(3);
+            } else if ("12_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
+                registration.setPackageAmount(new BigDecimal("800.00"));
+                registration.setSubscriptionDurationMonths(12);
+            } else {
+                registration.setPackageAmount(new BigDecimal("500.00"));
+                registration.setSubscriptionDurationMonths(6);
+            }
+        } else {
+            if ("3_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
+                registration.setSubscriptionDurationMonths(3);
+            } else if ("12_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
+                registration.setSubscriptionDurationMonths(12);
+            } else {
+                registration.setSubscriptionDurationMonths(6);
+            }
+        }
+
         registration.setApprovalStatus("PENDING");
         return marriageRegistrationRepository.save(registration);
     }
@@ -35,9 +106,32 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     }
 
     @Override
+    @Transactional
     public MarriageRegistration updateApprovalStatus(Integer id, String status) {
+        return updateApprovalStatusWithReason(id, status, null);
+    }
+
+    @Override
+    @Transactional
+    public MarriageRegistration updateApprovalStatusWithReason(Integer id, String status, String reason) {
         MarriageRegistration reg = getById(id);
-        reg.setApprovalStatus(status);
+        String upperStatus = status.trim().toUpperCase();
+        reg.setApprovalStatus(upperStatus);
+
+        if ("APPROVED".equals(upperStatus)) {
+            LocalDate start = LocalDate.now();
+            int months = (reg.getSubscriptionDurationMonths() != null && reg.getSubscriptionDurationMonths() > 0)
+                    ? reg.getSubscriptionDurationMonths()
+                    : 6;
+            reg.setSubscriptionStartDate(start);
+            reg.setSubscriptionEndDate(start.plusMonths(months));
+            reg.setRejectionReason(null);
+        } else if ("REJECTED".equals(upperStatus)) {
+            if (reason != null && !reason.isBlank()) {
+                reg.setRejectionReason(reason.trim());
+            }
+        }
+
         return marriageRegistrationRepository.save(reg);
     }
 
@@ -45,6 +139,353 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     public MarriageRegistration getById(Integer id) {
         return marriageRegistrationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("विवाह नोंदणी सापडली नाही (ID: " + id + ")"));
+    }
+
+    @Override
+    public Page<MatrimonyPublicProfileDTO> getPublicProfiles(MatrimonyFilterDTO filter, Pageable pageable, Integer currentUserId) {
+        Specification<MarriageRegistration> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Rule: ONLY show APPROVED profiles
+            predicates.add(cb.equal(root.get("approvalStatus"), "APPROVED"));
+
+            if (filter != null) {
+                // Gender / Profile Type
+                if (filter.getProfileType() != null && !filter.getProfileType().isBlank() && !"all".equalsIgnoreCase(filter.getProfileType())) {
+                    predicates.add(cb.equal(cb.lower(root.get("profileType")), filter.getProfileType().toLowerCase().trim()));
+                }
+
+                // Age filters based on birthDate
+                LocalDate today = LocalDate.now();
+                if (filter.getMinAge() != null && filter.getMinAge() > 0) {
+                    LocalDate maxBirthDate = today.minusYears(filter.getMinAge());
+                    predicates.add(cb.lessThanOrEqualTo(root.get("birthDate"), maxBirthDate));
+                }
+                if (filter.getMaxAge() != null && filter.getMaxAge() > 0) {
+                    LocalDate minBirthDate = today.minusYears(filter.getMaxAge() + 1).plusDays(1);
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("birthDate"), minBirthDate));
+                }
+
+                // Caste / Samaj
+                if (filter.getCaste() != null && !filter.getCaste().isBlank() && !"सर्व".equals(filter.getCaste())) {
+                    predicates.add(cb.like(cb.lower(root.get("caste")), "%" + filter.getCaste().toLowerCase().trim() + "%"));
+                }
+
+                // Education Level
+                if (filter.getEducationLevel() != null && !filter.getEducationLevel().isBlank() && !"सर्व".equals(filter.getEducationLevel())) {
+                    predicates.add(cb.equal(root.get("educationLevel"), filter.getEducationLevel().trim()));
+                }
+
+                // Occupation Type
+                if (filter.getOccupationType() != null && !filter.getOccupationType().isBlank() && !"सर्व".equals(filter.getOccupationType())) {
+                    predicates.add(cb.equal(root.get("occupationType"), filter.getOccupationType().trim()));
+                }
+
+                // State
+                if (filter.getStateId() != null && filter.getStateId() > 0) {
+                    predicates.add(cb.equal(root.get("state").get("id"), filter.getStateId()));
+                }
+
+                // District
+                if (filter.getDistrictId() != null && filter.getDistrictId() > 0) {
+                    predicates.add(cb.equal(root.get("district").get("id"), filter.getDistrictId()));
+                }
+
+                // City / Taluka
+                if (filter.getCity() != null && !filter.getCity().isBlank() && !"सर्व".equals(filter.getCity())) {
+                    predicates.add(cb.like(cb.lower(root.get("city")), "%" + filter.getCity().toLowerCase().trim() + "%"));
+                }
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        // Determine sorting
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (filter != null && filter.getSort() != null) {
+            if ("ageAsc".equalsIgnoreCase(filter.getSort())) {
+                sort = Sort.by(Sort.Direction.DESC, "birthDate"); // Younger first
+            } else if ("ageDesc".equalsIgnoreCase(filter.getSort())) {
+                sort = Sort.by(Sort.Direction.ASC, "birthDate"); // Older first
+            }
+        }
+
+        Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        Page<MarriageRegistration> page = marriageRegistrationRepository.findAll(spec, sortedPageable);
+
+        Set<Integer> userFavorites = (currentUserId != null)
+                ? new HashSet<>(getUserFavorites(currentUserId))
+                : Collections.emptySet();
+
+        return page.map(reg -> mapToPublicDTO(reg, userFavorites.contains(reg.getId())));
+    }
+
+    @Override
+    public MatrimonyPublicProfileDTO getPublicProfileById(Integer id, Integer currentUserId) {
+        MarriageRegistration reg = getById(id);
+        if (!"APPROVED".equalsIgnoreCase(reg.getApprovalStatus())) {
+            throw new RuntimeException("प्रोफाइल सापडली नाही किंवा अद्याप मंजूर झालेली नाही.");
+        }
+        boolean isFav = (currentUserId != null) && matrimonyFavoriteRepository.existsByUserIdAndFavoriteProfileId(currentUserId, id);
+        return mapToPublicDTO(reg, isFav);
+    }
+
+    @Override
+    public MatrimonyFullProfileDTO getFullProfileById(Integer id, Integer currentUserId, boolean isAdmin) {
+        MarriageRegistration target = getById(id);
+        if (!"APPROVED".equalsIgnoreCase(target.getApprovalStatus()) && !isAdmin) {
+            throw new RuntimeException("प्रोफाइल सापडली नाही.");
+        }
+
+        // If not admin, verify that current user is an approved matrimony user with active subscription
+        if (!isAdmin) {
+            if (currentUserId == null) {
+                throw new RuntimeException("संपूर्ण प्रोफाइल आणि संपर्क माहिती पाहण्यासाठी कृपया नोंदणी करा किंवा लॉगिन करा.");
+            }
+            MarriageRegistration viewer = getById(currentUserId);
+            if (!"APPROVED".equalsIgnoreCase(viewer.getApprovalStatus())) {
+                throw new RuntimeException("तुमचा अर्ज अद्याप मंजूर झालेला नाही. मंजुरीनंतरच इतर प्रोफाइल्स पाहता येतील.");
+            }
+            if (viewer.getSubscriptionEndDate() != null && viewer.getSubscriptionEndDate().isBefore(LocalDate.now())) {
+                throw new RuntimeException("तुमची सबस्क्रिप्शन मुदत संपली आहे (" + viewer.getSubscriptionEndDate() + "). कृपया नूतनीकरण करा.");
+            }
+        }
+
+        boolean isFav = (currentUserId != null) && matrimonyFavoriteRepository.existsByUserIdAndFavoriteProfileId(currentUserId, id);
+        return mapToFullDTO(target, isFav);
+    }
+
+    @Override
+    public List<MatrimonyPublicProfileDTO> getSimilarProfiles(Integer profileId, Pageable pageable, Integer currentUserId) {
+        MarriageRegistration current = getById(profileId);
+        List<MarriageRegistration> list = marriageRegistrationRepository.findSimilarProfiles(
+                current.getProfileType(),
+                profileId,
+                pageable
+        );
+
+        Set<Integer> userFavorites = (currentUserId != null)
+                ? new HashSet<>(getUserFavorites(currentUserId))
+                : Collections.emptySet();
+
+        return list.stream()
+                .map(reg -> mapToPublicDTO(reg, userFavorites.contains(reg.getId())))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public MatrimonyAuthResponseDTO loginMatrimonyUser(String identifier, String password) {
+        if (identifier == null || identifier.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("कृपया मोबाईल / ईमेल आणि पासवर्ड भरा.");
+        }
+
+        String cleanIdentifier = identifier.trim();
+        MarriageRegistration reg = marriageRegistrationRepository.findByMobileOrEmail(cleanIdentifier)
+                .orElseThrow(() -> new RuntimeException("या मोबाईल क्रमांकासह किंवा ईमेलसह कोणतीही नोंदणी आढळली नाही."));
+
+        // Status verification
+        if ("PENDING".equalsIgnoreCase(reg.getApprovalStatus())) {
+            throw new RuntimeException("तुमचा अर्ज अद्याप प्रलंबित आहे. अॅडमिन मंजुरीनंतर लॉगिन करता येईल.");
+        }
+        if ("REJECTED".equalsIgnoreCase(reg.getApprovalStatus())) {
+            throw new RuntimeException("तुमचा अर्ज नाकारण्यात आला आहे. कृपया संपर्क साधा.");
+        }
+        if (!"APPROVED".equalsIgnoreCase(reg.getApprovalStatus())) {
+            throw new RuntimeException("तुमचा अर्ज अद्याप मंजूर झालेला नाही.");
+        }
+
+        // Password verification
+        if (reg.getPasswordHash() == null || !passwordEncoder.matches(password.trim(), reg.getPasswordHash())) {
+            throw new RuntimeException("पासवर्ड चुकीचा आहे.");
+        }
+
+        // Subscription check
+        boolean isSubActive = reg.getSubscriptionEndDate() == null || !reg.getSubscriptionEndDate().isBefore(LocalDate.now());
+
+        // Generate JWT token with role ROLE_MATRIMONY_USER
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "MATRIMONY_USER");
+        claims.put("userId", reg.getId());
+        claims.put("profileType", reg.getProfileType());
+        claims.put("fullName", reg.getFullName());
+
+        String token = jwtTokenUtil.generateTokenWithClaims(claims, reg.getMobile());
+
+        return MatrimonyAuthResponseDTO.builder()
+                .token(token)
+                .id(reg.getId())
+                .fullName(reg.getFullName())
+                .profileType(reg.getProfileType())
+                .mobile(reg.getMobile())
+                .email(reg.getEmail())
+                .subscriptionActive(isSubActive)
+                .subscriptionEndDate(reg.getSubscriptionEndDate())
+                .mainPhotoUrl(reg.getMainPhotoUrl())
+                .role("ROLE_MATRIMONY_USER")
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void resetMatrimonyPassword(String identifier, String newPassword) {
+        if (identifier == null || identifier.trim().isEmpty() || newPassword == null || newPassword.trim().isEmpty()) {
+            throw new IllegalArgumentException("कृपया सर्व रकाने भरा.");
+        }
+        if (newPassword.trim().length() < 6) {
+            throw new IllegalArgumentException("पासवर्ड किमान ६ अक्षरी असणे आवश्यक आहे.");
+        }
+
+        MarriageRegistration reg = marriageRegistrationRepository.findByMobileOrEmail(identifier.trim())
+                .orElseThrow(() -> new RuntimeException("या मोबाईल क्रमांकासह किंवा ईमेलसह नोंदणी आढळली नाही."));
+
+        reg.setPasswordHash(passwordEncoder.encode(newPassword.trim()));
+        marriageRegistrationRepository.save(reg);
+    }
+
+    @Override
+    @Transactional
+    public boolean toggleFavorite(Integer userId, Integer profileId) {
+        if (matrimonyFavoriteRepository.existsByUserIdAndFavoriteProfileId(userId, profileId)) {
+            matrimonyFavoriteRepository.deleteByUserIdAndFavoriteProfileId(userId, profileId);
+            return false;
+        } else {
+            MatrimonyFavorite fav = MatrimonyFavorite.builder()
+                    .userId(userId)
+                    .favoriteProfileId(profileId)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            matrimonyFavoriteRepository.save(fav);
+            return true;
+        }
+    }
+
+    @Override
+    public List<Integer> getUserFavorites(Integer userId) {
+        return matrimonyFavoriteRepository.findByUserId(userId).stream()
+                .map(MatrimonyFavorite::getFavoriteProfileId)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String uploadPhoto(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("कृपया वैध फोटो फाईल निवडा.");
+        }
+
+        Path uploadPath = Paths.get(uploadMarriageDir);
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String originalName = file.getOriginalFilename();
+        String extension = (originalName != null && originalName.contains("."))
+                ? originalName.substring(originalName.lastIndexOf("."))
+                : ".jpg";
+        String fileName = UUID.randomUUID() + extension;
+
+        Path target = uploadPath.resolve(fileName);
+        Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+        return "/uploads/marriage/" + fileName;
+    }
+
+    private String extractSurnameOrDisplayName(String fullName) {
+        if (fullName == null || fullName.trim().isEmpty()) return "सदस्य";
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length > 1) {
+            return parts[parts.length - 1]; // Return surname
+        }
+        return parts[0];
+    }
+
+    private int calculateAge(LocalDate birthDate) {
+        if (birthDate == null) return 0;
+        return Period.between(birthDate, LocalDate.now()).getYears();
+    }
+
+    private MatrimonyPublicProfileDTO mapToPublicDTO(MarriageRegistration reg, boolean isFavorite) {
+        int photoCount = 1;
+        if (Boolean.TRUE.equals(reg.getFullPhotoUploaded())) photoCount += 1;
+        if (reg.getMainPhotoUrl() != null && !reg.getMainPhotoUrl().isBlank()) photoCount = Math.max(photoCount, 3);
+
+        return MatrimonyPublicProfileDTO.builder()
+                .id(reg.getId())
+                .profileType(reg.getProfileType())
+                .displayName(reg.getFullName() != null ? reg.getFullName().trim() : "")
+                .age(calculateAge(reg.getBirthDate()))
+                .height(reg.getHeight())
+                .bloodGroup(reg.getBloodGroup())
+                .maritalStatus(reg.getMaritalStatus())
+                .religion(reg.getReligion())
+                .caste(reg.getCaste())
+                .manglik(reg.getManglik())
+                .educationLevel(reg.getEducationLevel())
+                .degreeName(reg.getDegreeName())
+                .occupationType(reg.getOccupationType())
+                .designation(reg.getDesignation())
+                .city(reg.getCity())
+                .districtNameMr(reg.getDistrict() != null ? reg.getDistrict().getNameMr() : null)
+                .stateNameMr(reg.getState() != null ? reg.getState().getNameMr() : null)
+                .mainPhotoUrl(reg.getMainPhotoUrl())
+                .photoCount(photoCount)
+                .isFavorite(isFavorite)
+                .createdAt(reg.getCreatedAt())
+                .build();
+    }
+
+    private MatrimonyFullProfileDTO mapToFullDTO(MarriageRegistration reg, boolean isFavorite) {
+        boolean subActive = reg.getSubscriptionEndDate() == null || !reg.getSubscriptionEndDate().isBefore(LocalDate.now());
+        int photoCount = 1;
+        if (Boolean.TRUE.equals(reg.getFullPhotoUploaded())) photoCount += 1;
+        if (reg.getMainPhotoUrl() != null && !reg.getMainPhotoUrl().isBlank()) photoCount = Math.max(photoCount, 4);
+
+        return MatrimonyFullProfileDTO.builder()
+                .id(reg.getId())
+                .profileType(reg.getProfileType())
+                .fullName(reg.getFullName())
+                .displayName(reg.getFullName() != null ? reg.getFullName().trim() : "")
+                .birthDate(reg.getBirthDate())
+                .age(calculateAge(reg.getBirthDate()))
+                .height(reg.getHeight())
+                .bloodGroup(reg.getBloodGroup())
+                .maritalStatus(reg.getMaritalStatus())
+                .religion(reg.getReligion())
+                .caste(reg.getCaste())
+                .gotra(reg.getGotra())
+                .manglik(reg.getManglik())
+                .city(reg.getCity())
+                .districtId(reg.getDistrict() != null ? reg.getDistrict().getId() : null)
+                .districtNameMr(reg.getDistrict() != null ? reg.getDistrict().getNameMr() : null)
+                .stateId(reg.getState() != null ? reg.getState().getId() : null)
+                .stateNameMr(reg.getState() != null ? reg.getState().getNameMr() : null)
+                .mobile(reg.getMobile())
+                .email(reg.getEmail())
+                .parentMobile(reg.getParentMobile())
+                .aboutSelf(reg.getAboutSelf())
+                .expectations(reg.getExpectations())
+                .educationLevel(reg.getEducationLevel())
+                .degreeName(reg.getDegreeName())
+                .schoolCollege(reg.getSchoolCollege())
+                .passingYear(reg.getPassingYear())
+                .occupationType(reg.getOccupationType())
+                .designation(reg.getDesignation())
+                .companyName(reg.getCompanyName())
+                .annualIncome(reg.getAnnualIncome())
+                .fatherName(reg.getFatherName())
+                .fatherOccupation(reg.getFatherOccupation())
+                .motherName(reg.getMotherName())
+                .brothers(reg.getBrothers())
+                .sisters(reg.getSisters())
+                .familyBackground(reg.getFamilyBackground())
+                .mainPhotoUrl(reg.getMainPhotoUrl())
+                .photoCount(photoCount)
+                .mainPhotoUploaded(reg.getMainPhotoUploaded())
+                .fullPhotoUploaded(reg.getFullPhotoUploaded())
+                .subscriptionActive(subActive)
+                .subscriptionEndDate(reg.getSubscriptionEndDate())
+                .isFavorite(isFavorite)
+                .createdAt(reg.getCreatedAt())
+                .build();
     }
 
     @Override
@@ -56,28 +497,22 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             PdfWriter.getInstance(document, baos);
             document.open();
 
-            // Font Initialization for crisp Devanagari (Marathi) text support
+            // Font Initialization for crisp Devanagari text support
             BaseFont regularBase = PdfFontUtil.loadDevanagariBaseFont(false);
             BaseFont boldBase = PdfFontUtil.loadDevanagariBaseFont(true);
 
-            // Saffron/Amber Theme Colors
             Color saffronDark = new Color(196, 93, 20);     // #c45d14
             Color saffronMain = new Color(232, 121, 44);    // #E8792C
             Color sectionBg = new Color(255, 248, 240);      // #FFF8F0
-            Color textBlack = new Color(0, 0, 0);            // #000000 Pure Black for maximum contrast
+            Color textBlack = new Color(0, 0, 0);            // #000000
             Color lightBorder = new Color(254, 215, 170);    // #fed7aa
 
-            Font orgTitleFont = new Font(boldBase, 17, Font.BOLD, saffronDark);
-            Font taglineFont = new Font(boldBase, 11, Font.BOLD, saffronMain);
             Font subHeaderFont = new Font(boldBase, 12.5f, Font.BOLD, textBlack);
-            Font contactFont = new Font(boldBase, 10, Font.BOLD, textBlack);
             Font metaFont = new Font(boldBase, 10.5f, Font.BOLD, textBlack);
             Font sectionTitleFont = new Font(boldBase, 12, Font.BOLD, saffronDark);
             Font labelFont = new Font(boldBase, 11, Font.BOLD, textBlack);
             Font valueFont = new Font(regularBase, 10.5f, Font.NORMAL, textBlack);
-            Font signFont = new Font(boldBase, 10.5f, Font.BOLD, textBlack);
 
-            // Main Outer Box
             PdfPTable outerBox = new PdfPTable(1);
             outerBox.setWidthPercentage(100);
 
@@ -87,7 +522,6 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             boxCell.setBorderColor(saffronMain);
             boxCell.setBorderWidth(2);
 
-            // 1. Header Section
             Image imgOrg = PdfFontUtil.createDevanagariImage("दापोली मंडणगड सेवाभावी संस्था, पुणे", 17, true, saffronDark);
             imgOrg.setAlignment(Element.ALIGN_CENTER);
             boxCell.addElement(imgOrg);
@@ -104,11 +538,9 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             imgContact.setAlignment(Element.ALIGN_CENTER);
             boxCell.addElement(imgContact);
 
-            // Saffron Separator Line
             LineSeparator line = new LineSeparator(1.5f, 100f, saffronMain, Element.ALIGN_CENTER, -2);
             boxCell.addElement(line);
 
-            // 2. Metadata Bar (ID, Type, Date)
             PdfPTable metaTable = new PdfPTable(3);
             metaTable.setWidthPercentage(100);
             metaTable.setSpacingBefore(6);
@@ -124,14 +556,12 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             addMetaCell(metaTable, "दिनांक:", dateStr, metaFont, textBlack);
             boxCell.addElement(metaTable);
 
-            // Calculate age
             String ageStr = "";
             if (reg.getBirthDate() != null) {
                 int age = Period.between(reg.getBirthDate(), LocalDate.now()).getYears();
                 ageStr = " (" + age + " वर्षे)";
             }
 
-            // 3. Section 1: वैयक्तिक माहिती (Personal Details)
             addSectionHeader(boxCell, "१. वैयक्तिक माहिती (Personal Details)", sectionTitleFont, sectionBg, saffronMain);
             PdfPTable sec1 = new PdfPTable(4);
             sec1.setWidthPercentage(100);
@@ -154,7 +584,6 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             }
             boxCell.addElement(sec1);
 
-            // 4. Section 2: शैक्षणिक माहिती (Educational Details)
             addSectionHeader(boxCell, "२. शैक्षणिक माहिती (Educational Details)", sectionTitleFont, sectionBg, saffronMain);
             PdfPTable sec2 = new PdfPTable(4);
             sec2.setWidthPercentage(100);
@@ -165,7 +594,6 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             addGridRow(sec2, "शाळा / कॉलेज:", reg.getSchoolCollege() != null ? reg.getSchoolCollege() : "-", "उत्तीर्ण वर्ष:", reg.getPassingYear() != null ? reg.getPassingYear() : "-", labelFont, valueFont, lightBorder);
             boxCell.addElement(sec2);
 
-            // 5. Section 3: व्यावसायिक माहिती (Professional Details)
             addSectionHeader(boxCell, "३. व्यावसायिक माहिती (Professional Details)", sectionTitleFont, sectionBg, saffronMain);
             PdfPTable sec3 = new PdfPTable(4);
             sec3.setWidthPercentage(100);
@@ -176,7 +604,6 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             addGridRow(sec3, "कंपनीचे नाव:", reg.getCompanyName() != null ? reg.getCompanyName() : "-", "वार्षिक उत्पन्न:", reg.getAnnualIncome() != null ? reg.getAnnualIncome() : "-", labelFont, valueFont, lightBorder);
             boxCell.addElement(sec3);
 
-            // 6. Section 4: कौटुंबिक माहिती (Family Details)
             addSectionHeader(boxCell, "४. कौटुंबिक माहिती (Family Details)", sectionTitleFont, sectionBg, saffronMain);
             PdfPTable sec4 = new PdfPTable(4);
             sec4.setWidthPercentage(100);
@@ -190,18 +617,17 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             }
             boxCell.addElement(sec4);
 
-            // 7. Section 5: नोंदणी व शुल्क तपशील (Registration & Fee)
             addSectionHeader(boxCell, "५. नोंदणी व शुल्क तपशील (Registration & Fee)", sectionTitleFont, sectionBg, saffronMain);
             PdfPTable sec5 = new PdfPTable(4);
             sec5.setWidthPercentage(100);
             sec5.setWidths(new float[]{22f, 28f, 22f, 28f});
             sec5.setSpacingAfter(10);
 
-            addGridRow(sec5, "नोंदणी शुल्क:", "₹५००", "नोंदणी स्थिती:", "नोंदणी पूर्ण (यशस्वी)", labelFont, valueFont, lightBorder);
+            String feeStr = reg.getPackageAmount() != null ? "₹" + reg.getPackageAmount().intValue() : "₹५००";
+            addGridRow(sec5, "नोंदणी शुल्क:", feeStr, "नोंदणी स्थिती:", "नोंदणी पूर्ण (यशस्वी)", labelFont, valueFont, lightBorder);
             addGridFullRow(sec5, "घोषणा पुष्टीकरण:", "माहिती सत्य आणि अचूक असल्याची घोषणा अर्जदाराने मान्य केली आहे.", labelFont, valueFont, lightBorder);
             boxCell.addElement(sec5);
 
-            // 8. Signatures Block
             PdfPTable signTable = new PdfPTable(2);
             signTable.setWidthPercentage(100);
             signTable.setSpacingBefore(12);

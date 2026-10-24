@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import StepIndicator from '../../components/StepIndicator';
-import { ArrowLeft, ArrowRight, CheckCircle2, Printer, Loader2, ShieldCheck, Pencil, Trash2, QrCode, Smartphone, Upload, Download, Eye, RotateCcw, X, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Printer, Loader2, ShieldCheck, Pencil, Trash2, QrCode, Smartphone, Upload, Download, Eye, EyeOff, Gift, RotateCcw, X, FileText } from 'lucide-react';
 import { api, BASE_URL, type State, type District, type City, type BloodGroup, type MaritalStatus, type Religion, type Height, type PaymentSettingResponse } from '../../services/api';
 import { uploadImage, imageUrl, deleteImage, fetchByCategory, type GalleryImage } from '../../services/galleryApi';
 import { useAuth } from '../../context/AuthContext';
@@ -42,12 +42,65 @@ export const MarriageRegistrationPage: React.FC = () => {
   const [declarationMsg, setDeclarationMsg] = useState<string>('कृपया माहिती सत्य असल्याची पुष्टी करण्यासाठी टिक करा.');
   const [, setMainPhotoFile] = useState<File | null>(null);
   const [mainPhotoPreview, setMainPhotoPreview] = useState<string | null>(() => localDraft?.mainPhotoPreview ?? null);
+  const [mainPhotoUploadedUrl, setMainPhotoUploadedUrl] = useState<string | null>(() => localDraft?.mainPhotoUploadedUrl ?? null);
   const { isAdmin } = useAuth();
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(null);
   const BANNER_SECTION_KEY = 'marriage_registration_banner';
 
-  // Payment State (Fixed ₹500 fee requirement for Marriage)
-  const MARRIAGE_FEE = 500;
+  // Subscription Package State (3, 6, 12 months)
+  const packages = [
+    {
+      id: '3_MONTHS',
+      durationMonths: 3,
+      nameMr: '३ महिने',
+      amount: 300,
+      badge: null,
+      features: [
+        'प्रोफाइल सर्वांसाठी दिसेल',
+        'आधारभूत शोध फिल्टर',
+        'मर्यादित संपर्क विनंत्या',
+        'ईमेल अलर्ट्स',
+      ],
+    },
+    {
+      id: '6_MONTHS',
+      durationMonths: 6,
+      nameMr: '६ महिने',
+      amount: 500,
+      badge: 'सर्वाधिक लोकप्रिय',
+      features: [
+        'प्रोफाइल सर्वांसाठी दिसेल',
+        'प्रगत शोध फिल्टर',
+        'अधिक संपर्क विनंत्या',
+        'प्राधान्याने परिणामात दिसेल',
+        'ईमेल / SMS अलर्ट',
+      ],
+    },
+    {
+      id: '12_MONTHS',
+      durationMonths: 12,
+      nameMr: '१२ महिने',
+      amount: 800,
+      badge: null,
+      features: [
+        'प्रोफाइल सर्वांसाठी दिसेल',
+        'सर्व प्रगत फिल्टर्स',
+        'अमर्यादित संपर्क विनंत्या',
+        'प्राधान्याने परिणामात दिसेल',
+        'ईमेल / SMS अलर्ट',
+        'विशेष सपोर्ट',
+      ],
+    },
+  ];
+
+  const [packageType, setPackageType] = useState<'3_MONTHS' | '6_MONTHS' | '12_MONTHS'>(() => localDraft?.packageType ?? '6_MONTHS');
+  const [packageAmount, setPackageAmount] = useState<number>(() => localDraft?.packageAmount ?? 500);
+
+  // Password visibility
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+
+  // Payment State
   const [paymentQrSettings, setPaymentQrSettings] = useState<PaymentSettingResponse | null>(null);
   const [paymentMode, setPaymentMode] = useState<string>(() => localDraft?.paymentMode ?? (isAdmin ? 'Cash' : 'GPay'));
   const [cashAmountReceived, setCashAmountReceived] = useState<string>(() => localDraft?.cashAmountReceived ?? '500');
@@ -57,7 +110,6 @@ export const MarriageRegistrationPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [registrationComplete, setRegistrationComplete] = useState<boolean>(() => localDraft?.registrationComplete ?? false);
   const [registeredId, setRegisteredId] = useState<number | null>(() => localDraft?.registeredId ?? null);
-
   useEffect(() => {
     fetchByCategory('banner')
       .then(images => setBannerImage(images.find(img => img.sectionKey === BANNER_SECTION_KEY) ?? null))
@@ -90,6 +142,7 @@ export const MarriageRegistrationPage: React.FC = () => {
   };
 
   // Form state
+
   const [formData, setFormData] = useState(() => {
     if (localDraft?.formData) return localDraft.formData;
     return {
@@ -107,6 +160,8 @@ export const MarriageRegistrationPage: React.FC = () => {
       districtId: '',
       mobile: '',
       email: '',
+      password: '',
+      confirmPassword: '',
       parentMobile: '',
       aboutSelf: '',
       expectations: '',
@@ -131,6 +186,7 @@ export const MarriageRegistrationPage: React.FC = () => {
       declaration: false,
     };
   });
+
 
   // Load lookups on mount
   useEffect(() => {
@@ -177,6 +233,9 @@ export const MarriageRegistrationPage: React.FC = () => {
       profileType,
       currentStep,
       mainPhotoPreview,
+      mainPhotoUploadedUrl,
+      packageType,
+      packageAmount,
       paymentMode,
       cashAmountReceived,
       upiTxnId,
@@ -185,7 +244,7 @@ export const MarriageRegistrationPage: React.FC = () => {
       registeredId,
     };
     saveDraft(draft, DRAFT_KEY);
-  }, [formData, profileType, currentStep, mainPhotoPreview, paymentMode, cashAmountReceived, upiTxnId, screenshotPreview, registrationComplete, registeredId]);
+  }, [formData, profileType, currentStep, mainPhotoPreview, mainPhotoUploadedUrl, packageType, packageAmount, paymentMode, cashAmountReceived, upiTxnId, screenshotPreview, registrationComplete, registeredId]);
 
   const steps = [
     'वैयक्तिक माहिती',
@@ -193,11 +252,11 @@ export const MarriageRegistrationPage: React.FC = () => {
     'व्यावसायिक माहिती',
     'कुटुंबाची माहिती',
     'फोटो अपलोड करा',
-    'पेमेंट (₹५००)',
+    `पॅकेज व पेमेंट (₹${packageAmount})`,
     'पुष्टीकरण'
   ];
 
-  const handleMainPhotoSelect = (file: File) => {
+  const handleMainPhotoSelect = async (file: File) => {
     setMainPhotoFile(file);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -208,7 +267,15 @@ export const MarriageRegistrationPage: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
+
+    try {
+      const url = await api.uploadMarriagePhoto(file);
+      setMainPhotoUploadedUrl(url);
+    } catch (e) {
+      console.warn('Photo upload warning:', e);
+    }
   };
+
 
   const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -380,7 +447,12 @@ export const MarriageRegistrationPage: React.FC = () => {
         familyBackground: formData.familyBackground || null,
         mainPhotoUploaded: formData.mainPhotoUploaded,
         fullPhotoUploaded: formData.fullPhotoUploaded,
-        declaration: formData.declaration
+        declaration: formData.declaration,
+        passwordHash: formData.password || undefined,
+        packageType: packageType,
+        packageAmount: packageAmount,
+        subscriptionDurationMonths: packageType === '3_MONTHS' ? 3 : packageType === '12_MONTHS' ? 12 : 6,
+        mainPhotoUrl: mainPhotoUploadedUrl || undefined
       };
 
       const saved = await api.registerMarriage(payload);
@@ -390,7 +462,7 @@ export const MarriageRegistrationPage: React.FC = () => {
         const fd = new FormData();
         fd.append('registrationType', 'MARRIAGE');
         fd.append('registrationId', saved.id.toString());
-        fd.append('amount', paymentMode === 'Cash' ? (cashAmountReceived || '500') : '500');
+        fd.append('amount', paymentMode === 'Cash' ? (cashAmountReceived || String(packageAmount)) : String(packageAmount));
         fd.append('membershipType', 'marriage');
         fd.append('paymentMode', paymentMode);
         if (upiTxnId) fd.append('upiTxnId', upiTxnId);
@@ -560,7 +632,7 @@ export const MarriageRegistrationPage: React.FC = () => {
   const upiPayLink = buildUpiLink(
     paymentQrSettings?.upiId || '9823456789@upi',
     paymentQrSettings?.payeeName || 'दापोली मंडणगड सेवाभावी संस्था',
-    MARRIAGE_FEE,
+    packageAmount,
     `Marriage Registration - ${formData.fullName}`
   );
 
@@ -1086,6 +1158,56 @@ export const MarriageRegistrationPage: React.FC = () => {
                     </div>
 
                     <div className="sm:col-span-2">
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">ईमेल आयडी (ऐच्छिक)</label>
+                      <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="उदा. example@gmail.com" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
+                      {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">लॉगिन पासवर्ड (कमीतकमी ६ अक्षरे) <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          placeholder="लॉगिनसाठी पासवर्ड सेट करा"
+                          className={`w-full px-3.5 py-2.5 pr-10 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">पासवर्ड पुष्टीकरण <span className="text-red-500">*</span></label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          placeholder="पासवर्ड पुन्हा प्रविष्ट करा"
+                          className={`w-full px-3.5 py-2.5 pr-10 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.confirmPassword ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 hover:text-charcoal"
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {errors.confirmPassword && <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>}
+                    </div>
+
+                    <div className="sm:col-span-2">
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">स्वतःबद्दल माहिती <span className="text-red-500">*</span></label>
                       <textarea name="aboutSelf" rows={2} value={formData.aboutSelf} onChange={handleInputChange} placeholder="आपल्याबद्दल थोडक्यात सांगा..." className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.aboutSelf ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
                       {errors.aboutSelf && <p className="text-red-500 text-xs mt-1">{errors.aboutSelf}</p>}
@@ -1270,9 +1392,81 @@ export const MarriageRegistrationPage: React.FC = () => {
                 </div>
               )}
 
-              {/* STEP 6: पेमेंट (₹५००) */}
+              {/* STEP 6: पेमेंट */}
               {currentStep === 6 && (
                 <div className="space-y-6 animate-fade-in">
+                  {/* पॅकेज निवडा (Package Selector) from Screenshot 3 */}
+                  <div className="bg-white border border-charcoal/15 rounded-2xl p-5 md:p-6 shadow-xs space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-50 rounded-xl text-saffron border border-saffron/10">
+                        <Gift className="w-5 h-5 text-saffron" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-saffron" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                          पॅकेज निवडा (Select Package)
+                        </h3>
+                        <p className="text-xs text-charcoal/60">आपल्या आवश्यकतेनुसार योग्य कालावधीचे पॅकेज निवडा</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+                      {packages.map((pkg) => {
+                        const isSelected = packageType === pkg.id;
+                        return (
+                          <div
+                            key={pkg.id}
+                            onClick={() => {
+                              setPackageType(pkg.id as any);
+                              setPackageAmount(pkg.amount);
+                            }}
+                            className={`relative flex flex-col justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                              isSelected
+                                ? 'border-saffron bg-saffron/5 shadow-md scale-[1.02]'
+                                : 'border-charcoal/15 hover:border-saffron/40 bg-white'
+                            }`}
+                          >
+                            {pkg.badge && (
+                              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-saffron text-white text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
+                                {pkg.badge}
+                              </div>
+                            )}
+                            <div>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-saffron bg-saffron' : 'border-charcoal/30'}`}>
+                                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                  </div>
+                                  <span className="font-bold text-sm text-charcoal">{pkg.nameMr}</span>
+                                </div>
+                              </div>
+                              <div className="text-2xl font-black text-saffron my-2" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                                ₹ {pkg.amount}
+                              </div>
+                              <ul className="space-y-1.5 text-xs text-charcoal/80 my-3">
+                                {pkg.features.map((feat, i) => (
+                                  <li key={i} className="flex items-center gap-1.5">
+                                    <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0" />
+                                    <span>{feat}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <button
+                              type="button"
+                              className={`w-full py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                                isSelected
+                                  ? 'bg-saffron text-white shadow-xs'
+                                  : 'border border-saffron/30 text-saffron hover:bg-saffron/10'
+                              }`}
+                            >
+                              {isSelected ? 'निवडले ✓' : 'निवडा'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {paymentMode !== 'Cash' && (
                     <>
                       {/* 1. QR Code Scanning & Clickable UPI Link Card (Same design as Member Registration) */}
@@ -1291,7 +1485,7 @@ export const MarriageRegistrationPage: React.FC = () => {
 
                         {/* Amount Read-Only Badge */}
                         <div className="inline-block bg-saffron text-white font-bold text-sm px-6 py-1.5 rounded-full shadow-xs">
-                          भराव्याची रक्कम: ₹५००
+                          भराव्याची रक्कम: ₹{packageAmount}
                         </div>
 
                         {/* Live QR Code Display Container */}

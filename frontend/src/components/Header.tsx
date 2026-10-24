@@ -1,7 +1,8 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+	import React from 'react';
+	import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -14,6 +15,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const { isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+
+
+  const isMatrimonyRoute =
+    location.pathname.startsWith('/marriage-registration') ||
+    location.pathname.startsWith('/marriage-profile') ||
+    location.pathname === '/marriage-login';
 
   const handleLogout = () => {
     navigate('/', { replace: true });

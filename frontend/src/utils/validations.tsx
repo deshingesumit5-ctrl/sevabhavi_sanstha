@@ -166,7 +166,10 @@ export interface MarriageFormErrors {
   mainPhotoUploaded?: string;
   declaration?: string;
   screenshot?: string;
+  password?: string;
+  confirmPassword?: string;
 }
+
 
 export const validateMarriageForm = (
   formData: any,
@@ -239,7 +242,16 @@ export const validateMarriageForm = (
     if (!formData.expectations || !formData.expectations.trim()) {
       setFieldError('expectations', 'ही माहिती भरणे आवश्यक आहे', 1);
     }
+    if (!formData.password || !formData.password.trim()) {
+      setFieldError('password', 'कृपया लॉगिनसाठी पासवर्ड प्रविष्ट करा', 1);
+    } else if (formData.password.length < 6) {
+      setFieldError('password', 'पासवर्ड किमान ६ अक्षरी असणे आवश्यक आहे', 1);
+    }
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      setFieldError('confirmPassword', 'पासवर्ड आणि पुष्टी पासवर्ड जुळत नाहीत', 1);
+    }
   }
+
 
   // Step 2: शैक्षणिक माहिती
   if (!step || step === 2) {

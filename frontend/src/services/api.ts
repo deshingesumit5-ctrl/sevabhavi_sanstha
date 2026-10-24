@@ -32,6 +32,22 @@ export const getAdminHeaders = (): Record<string, string> => {
   return {};
 };
 
+export const getMatrimonyHeaders = (): Record<string, string> => {
+  try {
+    const stored = localStorage.getItem('sevabhavi_matrimony_session');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const headers: Record<string, string> = {};
+      if (parsed.token) {
+        headers['Authorization'] = `Bearer ${parsed.token}`;
+      }
+      return headers;
+    }
+  } catch { }
+  return {};
+};
+
+
 
 export interface State {
   id: number;
@@ -143,8 +159,94 @@ export interface MarriageRegistrationData {
   fullPhotoUploaded: boolean;
   declaration: boolean;
   approvalStatus: string;
+  passwordHash?: string;
+  packageType?: string;
+  packageAmount?: number;
+  subscriptionDurationMonths?: number;
+  subscriptionStartDate?: string | null;
+  subscriptionEndDate?: string | null;
+  mainPhotoUrl?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
 }
+
+export interface MatrimonyPublicProfile {
+  id: number;
+  profileType: 'bride' | 'groom' | string;
+  displayName: string;
+  age: number;
+  height: string;
+  bloodGroup: string;
+  maritalStatus: string;
+  religion: string;
+  caste: string;
+  manglik: string;
+  educationLevel: string;
+  degreeName: string;
+  occupationType: string;
+  designation: string | null;
+  city: string;
+  districtNameMr: string | null;
+  stateNameMr: string | null;
+  mainPhotoUrl: string | null;
+  photoCount: number;
+  isFavorite: boolean;
+  createdAt: string;
+}
+
+export interface MatrimonyFullProfile extends MatrimonyPublicProfile {
+  fullName: string;
+  birthDate: string;
+  gotra: string | null;
+  districtId: number;
+  stateId: number;
+  mobile?: string;
+  email?: string | null;
+  parentMobile?: string;
+  aboutSelf: string;
+  expectations: string;
+  schoolCollege: string | null;
+  passingYear: string;
+  companyName: string | null;
+  annualIncome: string;
+  fatherName: string;
+  fatherOccupation: string;
+  motherName: string;
+  brothers: number;
+  sisters: number;
+  familyBackground: string | null;
+  mainPhotoUploaded: boolean;
+  fullPhotoUploaded: boolean;
+  subscriptionActive: boolean;
+  subscriptionEndDate: string | null;
+}
+
+export interface MatrimonyFilterParams {
+  profileType?: string;
+  minAge?: number;
+  maxAge?: number;
+  caste?: string;
+  educationLevel?: string;
+  occupationType?: string;
+  stateId?: number;
+  districtId?: number;
+  city?: string;
+  sort?: string;
+}
+
+export interface MatrimonyAuthResponse {
+  token: string;
+  id: number;
+  fullName: string;
+  profileType: string;
+  mobile: string;
+  email: string | null;
+  subscriptionActive: boolean;
+  subscriptionEndDate: string | null;
+  mainPhotoUrl: string | null;
+  role: string;
+}
+
 
 export interface DonationType {
   id: number;
@@ -511,11 +613,15 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('विवाह नोंदणी अयशस्वी झाली.');
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(json?.error || json?.message || 'विवाह नोंदणी अयशस्वी झाली.');
+    }
     invalidateCache('all_marriages');
     invalidateCache('dashboard_stats');
-    return res.json();
+    return json;
   },
+
 
   // Admin - Get all registrations
   getAllMembers: async (): Promise<MemberRegistrationData[]> => {
@@ -1016,7 +1122,113 @@ export const api = {
     invalidateCache('all_donations');
     return updated;
   },
+
+  // ── Matrimony APIs ──────────────────────────────────────────────────────────
+  getMatrimonyProfiles: async (
+    filter: MatrimonyFilterParams = {},
+    page = 0,
+    size = 12
+  ): Promise<{ content: MatrimonyPublicProfile[]; totalElements: number; totalPages: number; number: number; last: boolean }> => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    if (filter.profileType && filter.profileType !== 'all') params.set('profileType', filter.profileType);
+    if (filter.minAge) params.set('minAge', filter.minAge.toString());
+    if (filter.maxAge) params.set('maxAge', filter.maxAge.toString());
+    if (filter.caste && filter.caste !== 'सर्व') params.set('caste', filter.caste);
+    if (filter.educationLevel && filter.educationLevel !== 'सर्व') params.set('educationLevel', filter.educationLevel);
+    if (filter.occupationType && filter.occupationType !== 'सर्व') params.set('occupationType', filter.occupationType);
+    if (filter.stateId) params.set('stateId', filter.stateId.toString());
+    if (filter.districtId) params.set('districtId', filter.districtId.toString());
+    if (filter.city && filter.city !== 'सर्व') params.set('city', filter.city);
+    if (filter.sort) params.set('sort', filter.sort);
+
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/profiles?${params.toString()}`, { headers });
+    if (!res.ok) throw new Error('प्रोफाइल्स लोड करता आली नाहीत.');
+    return res.json();
+  },
+
+  getMatrimonyProfile: async (id: number): Promise<MatrimonyPublicProfile> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/profiles/${id}`, { headers });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'प्रोफाइल सापडली नाही.');
+    return json;
+  },
+
+  getMatrimonyFullProfile: async (id: number): Promise<MatrimonyFullProfile> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders(), ...getAdminHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/profile-full/${id}`, { headers });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'संपूर्ण माहिती पाहण्यासाठी लॉगिन किंवा नूतनीकरण आवश्यक आहे.');
+    return json;
+  },
+
+  getSimilarProfiles: async (id: number, limit = 6): Promise<MatrimonyPublicProfile[]> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/profiles/${id}/similar?limit=${limit}`, { headers });
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  matrimonyLogin: async (identifier: string, password: string): Promise<MatrimonyAuthResponse> => {
+    const res = await fetch(`${BASE_URL}/matrimony/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, password }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(json?.error || 'लॉगिन अयशस्वी झाले. कृपया तपशील तपासा.');
+    }
+    return json;
+  },
+
+  matrimonyResetPassword: async (identifier: string, newPassword: string): Promise<any> => {
+    const res = await fetch(`${BASE_URL}/matrimony/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier, newPassword }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) {
+      throw new Error(json?.error || 'पासवर्ड बदल अयशस्वी.');
+    }
+    return json;
+  },
+
+  toggleMatrimonyFavorite: async (profileId: number): Promise<{ favorite: boolean; message: string }> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/favorites/${profileId}`, {
+      method: 'POST',
+      headers,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'कृपया प्रथम लॉगिन करा.');
+    return json;
+  },
+
+  getMatrimonyFavorites: async (): Promise<number[]> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    const res = await fetch(`${BASE_URL}/matrimony/favorites`, { headers });
+    if (!res.ok) return [];
+    return res.json();
+  },
+
+  uploadMarriagePhoto: async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE_URL}/matrimony/upload-photo`, {
+      method: 'POST',
+      body: formData,
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'फोटो अपलोड अयशस्वी.');
+    return json.url;
+  },
 };
+
 
 
 

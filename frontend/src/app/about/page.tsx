@@ -23,7 +23,7 @@ export const AboutPage: React.FC = () => {
       </section>
 
       {/* 2. NGO Info: History, Vision, Mission */}
-      <section className="w-full px-4 max-w-6xl mx-auto space-y-8 section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto space-y-8 section-gap-top">
         
         {/* History Card */}
         <div className="bg-white rounded-card-lg border border-maroon/5 shadow-soft p-6 md:p-8 flex flex-col md:flex-row gap-6 items-start">
@@ -79,7 +79,7 @@ export const AboutPage: React.FC = () => {
 
       {/* 3. Committee Members List */}
       <section className="w-full px-4 py-8 bg-cream/30 border-y border-maroon/5 section-gap-top">
-        <div className="max-w-6xl mx-auto">
+        <div className="	max-w-5xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-8">
             <h2 className="text-2xl md:text-3xl font-bold font-heading text-maroon inline-block border-b-2 border-saffron pb-2">
               समिती सदस्य

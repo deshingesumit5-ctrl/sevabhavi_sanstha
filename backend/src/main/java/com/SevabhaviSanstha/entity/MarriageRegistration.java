@@ -127,6 +127,31 @@ public class MarriageRegistration {
     @Column(name = "approval_status", nullable = false, length = 20)
     private String approvalStatus = "PENDING";
 
+    @Column(name = "password_hash", length = 255)
+    private String passwordHash;
+
+    @Column(name = "package_type", length = 50)
+    private String packageType = "6_MONTHS";
+
+    @Column(name = "package_amount", precision = 10, scale = 2)
+    private java.math.BigDecimal packageAmount = new java.math.BigDecimal("500.00");
+
+    @Column(name = "subscription_duration_months")
+    private Integer subscriptionDurationMonths = 6;
+
+    @Column(name = "subscription_start_date")
+    private LocalDate subscriptionStartDate;
+
+    @Column(name = "subscription_end_date")
+    private LocalDate subscriptionEndDate;
+
+    @Column(name = "main_photo_url", length = 500)
+    private String mainPhotoUrl;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }
+

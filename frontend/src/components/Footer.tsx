@@ -15,7 +15,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="w-full bg-[#FFF8F0] text-charcoal border-t-2 border-saffron/30 pt-10 pb-20 lg:pb-10 px-6 shadow-xs section-gap-top">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="	max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
         
         {/* Column 1: About / Motto */}
         <div className="flex flex-col gap-3">
@@ -69,10 +69,10 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Border Separator */}
-      <div className="max-w-6xl mx-auto border-t border-charcoal/10 my-8"></div>
+      <div className="	max-w-5xl mx-auto border-t border-charcoal/10 my-8"></div>
 
       {/* Copyright row */}
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between text-center gap-4 text-xs text-charcoal/60 font-body">
+      <div className="	max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between text-center gap-4 text-xs text-charcoal/60 font-body">
         <p>© २०२६ दापोली मडणगड सेवाभावी संस्था, पुणे. सर्व हक्क सुरक्षित.</p>
       </div>
     </footer>

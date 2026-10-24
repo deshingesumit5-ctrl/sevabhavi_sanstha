@@ -178,7 +178,7 @@ export const ContactPage: React.FC = () => {
       </section>
 
       {/* 2. Main Grid */}
-      <section className="w-full px-4 max-w-6xl mx-auto section-gap-top">
+      <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
 
           {/* Left Column: Details & Map */}
