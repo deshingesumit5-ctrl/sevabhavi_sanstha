@@ -10,6 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
 import { buildUpiLink } from '../../utils/upi';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 
 const DRAFT_KEY = "marriage_reg_draft";
 
@@ -144,7 +145,7 @@ export const MarriageRegistrationPage: React.FC = () => {
   // Form state
 
   const [formData, setFormData] = useState(() => {
-    if (localDraft?.formData) return localDraft.formData;
+    if (localDraft?.formData) return { ...localDraft.formData, email: '', password: '', confirmPassword: '' };
     return {
       fullName: '',
       birthDate: '',
@@ -229,7 +230,7 @@ export const MarriageRegistrationPage: React.FC = () => {
   // Save state to draft on changes
   useEffect(() => {
     const draft = {
-      formData,
+      formData: { ...formData, email: '', password: '', confirmPassword: '' },
       profileType,
       currentStep,
       mainPhotoPreview,
@@ -293,7 +294,7 @@ export const MarriageRegistrationPage: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: { target: { name: string; value: string } }) => {
     const { name, value } = e.target;
     let val = value;
     if (name === 'mobile' || name === 'parentMobile') {
@@ -1055,7 +1056,7 @@ export const MarriageRegistrationPage: React.FC = () => {
               {currentStep === 1 && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
+                    <div>
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">पूर्ण नाव <span className="text-red-500">*</span></label>
                       <input type="text" name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder="आपले पूर्ण नाव लिहा" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.fullName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
                       {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
@@ -1063,7 +1064,12 @@ export const MarriageRegistrationPage: React.FC = () => {
 
                     <div>
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">जन्म तारीख <span className="text-red-500">*</span></label>
-                      <input type="date" name="birthDate" max={todayDate} value={formData.birthDate} onChange={handleInputChange} className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.birthDate ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
+                      <DatePickerDropdown
+                        name="birthDate"
+                        value={formData.birthDate}
+                        onChange={handleInputChange}
+                        hasError={!!errors.birthDate}
+                      />
                       {errors.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
                     </div>
 
@@ -1159,7 +1165,7 @@ export const MarriageRegistrationPage: React.FC = () => {
 
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">ईमेल आयडी (ऐच्छिक)</label>
-                      <input type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="उदा. example@gmail.com" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
+                      <input type="email" name="email" autoComplete="off" value={formData.email} onChange={handleInputChange} placeholder="उदा. example@gmail.com" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
                       {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                     </div>
 
@@ -1169,6 +1175,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                         <input
                           type={showPassword ? 'text' : 'password'}
                           name="password"
+                          autoComplete="new-password"
                           value={formData.password}
                           onChange={handleInputChange}
                           placeholder="लॉगिनसाठी पासवर्ड सेट करा"
@@ -1191,6 +1198,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                         <input
                           type={showConfirmPassword ? 'text' : 'password'}
                           name="confirmPassword"
+                          autoComplete="new-password"
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
                           placeholder="पासवर्ड पुन्हा प्रविष्ट करा"
@@ -1419,11 +1427,10 @@ export const MarriageRegistrationPage: React.FC = () => {
                               setPackageType(pkg.id as any);
                               setPackageAmount(pkg.amount);
                             }}
-                            className={`relative flex flex-col justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
-                              isSelected
-                                ? 'border-saffron bg-saffron/5 shadow-md scale-[1.02]'
-                                : 'border-charcoal/15 hover:border-saffron/40 bg-white'
-                            }`}
+                            className={`relative flex flex-col justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected
+                              ? 'border-saffron bg-saffron/5 shadow-md scale-[1.02]'
+                              : 'border-charcoal/15 hover:border-saffron/40 bg-white'
+                              }`}
                           >
                             {pkg.badge && (
                               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-saffron text-white text-[10px] font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider shadow-xs">
@@ -1453,11 +1460,10 @@ export const MarriageRegistrationPage: React.FC = () => {
                             </div>
                             <button
                               type="button"
-                              className={`w-full py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                                isSelected
-                                  ? 'bg-saffron text-white shadow-xs'
-                                  : 'border border-saffron/30 text-saffron hover:bg-saffron/10'
-                              }`}
+                              className={`w-full py-1.5 text-xs font-bold rounded-lg transition-colors ${isSelected
+                                ? 'bg-saffron text-white shadow-xs'
+                                : 'border border-saffron/30 text-saffron hover:bg-saffron/10'
+                                }`}
                             >
                               {isSelected ? 'निवडले ✓' : 'निवडा'}
                             </button>

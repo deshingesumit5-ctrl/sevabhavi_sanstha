@@ -21,6 +21,16 @@ import { api, type MatrimonyPublicProfile, type District, type City } from '../.
 import { useMatrimonyAuth } from '../../context/MatrimonyAuthContext';
 import MatrimonyLoginModal from '../../components/MatrimonyLoginModal';
 
+const GirlIcon: React.FC<{ size?: number; className?: string }> = ({ size = 16, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="7" r="3.5" />
+    <path d="M8.5 7C8.5 4 10 3 12 3s3.5 1 3.5 4" />
+    <path d="M8.6 8.5C6.2 8.5 5.6 11.5 6.6 13" />
+    <path d="M15.4 8.5c2.4 0 3 3 2 4.5" />
+    <path d="M12 11.5L8 21h8z" />
+  </svg>
+);
+
 interface MatrimonyDirectoryProps {
   onGoToRegister: () => void;
 }
@@ -199,66 +209,24 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
   return (
     <div className="flex flex-col w-full pb-16 bg-[#FFF8F0]">
       {/* ── 1. Hero Banner ── */}
-      <section className="w-full px-4 pt-6">
-        <div className="relative 	max-w-5xl mx-auto rounded-3xl overflow-hidden shadow-lg min-h-[300px] md:min-h-[320px] flex items-end md:items-center">
+      <section className="w-full px-4 pt-4 sm:pt-6">
+        <div className="w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg">
           <img
-            src="/matrimony-banner.jpg"
-            alt="Matrimony Banner"
-            className="absolute inset-0 w-full h-full object-cover object-left"
+            src="/matrimonybanner.png"
+            alt="Find Your Perfect Match"
+            className="block w-full h-auto"
           />
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#FFF3E6] via-[#FFF3E6]/70 md:via-transparent to-transparent md:to-[#FFF3E6]" />
-
-          <button type="button" onClick={() => setHeroSlide((p) => (p === 0 ? 2 : p - 1))}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center cursor-pointer">
-            <ChevronLeft size={18} />
-          </button>
-          <button type="button" onClick={() => setHeroSlide((p) => (p === 2 ? 0 : p + 1))}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center cursor-pointer">
-            <ChevronRight size={18} />
-          </button>
-
-          <div className="relative z-[5] md:ml-auto w-full md:w-1/2 p-6 md:p-10 text-center space-y-3">
-            <h2 className="text-2xl md:text-4xl font-extrabold text-[#C45D14] leading-snug" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
-              सुयोग्य जीवनसाथीच्या शोधासाठी विश्वासाचा मंच
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-              <span className="h-[1.5px] w-12 bg-saffron/40" />
-              <Heart size={16} className="text-saffron fill-saffron/30" />
-              <span className="h-[1.5px] w-12 bg-saffron/40" />
-            </div>
-            <p className="text-sm md:text-base font-semibold text-charcoal/70">Meaningful Matches for a Brighter Tomorrow</p>
-
-            <div className="flex flex-wrap items-start justify-center gap-4 pt-2">
-              {[
-                { icon: <ShieldCheck size={18} />, t: 'विश्वासार्ह', s: 'प्रोफाइल्स' },
-                { icon: <Lock size={18} />, t: 'सुरक्षित आणि', s: 'गोपनीय माहिती' },
-                { icon: <Users size={18} />, t: 'समाजातील', s: 'विश्वासाचे नाते' },
-              ].map((b) => (
-                <div key={b.t} className="flex items-center gap-2 text-left">
-                  <div className="w-10 h-10 rounded-full border-2 border-saffron/60 text-saffron flex items-center justify-center shrink-0">{b.icon}</div>
-                  <p className="text-[11px] font-semibold text-charcoal/80 leading-tight">{b.t}<br />{b.s}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
-            {[0, 1, 2].map((dot) => (
-              <button key={dot} type="button" onClick={() => setHeroSlide(dot)}
-                className={`h-2 rounded-full transition-all ${heroSlide === dot ? 'w-5 bg-saffron' : 'w-2 bg-white/80'}`} />
-            ))}
-          </div>
         </div>
       </section>
 
       {/* ── 2. Tabs + Filter Box (matching Target Image 3) ────────────────── */}
       <section className="	max-w-5xl mx-auto w-full px-4 mt-6 space-y-4">
         {/* Top Tabs: सर्व प्रोफाइल | वधू (Bride) | वर (Groom) */}
-        <div className="inline-flex items-center gap-1.5 flex-wrap p-1.5 bg-white rounded-full border border-saffron/15 shadow-sm">
+        <div className="flex w-full sm:inline-flex sm:w-auto items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-white rounded-full border border-saffron/15 shadow-sm">
           <button
             type="button"
             onClick={() => setProfileType('all')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${profileType === 'all'
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-2 rounded-full text-[11px] sm:text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${profileType === 'all'
               ? 'bg-gradient-to-r from-saffron to-[#C45D14] text-white shadow-md shadow-saffron/20'
               : 'text-charcoal/80 hover:bg-saffron/10'
               }`}
@@ -270,19 +238,19 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
           <button
             type="button"
             onClick={() => setProfileType('bride')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${profileType === 'bride'
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-2 rounded-full text-[11px] sm:text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${profileType === 'bride'
               ? 'bg-gradient-to-r from-saffron to-[#C45D14] text-white shadow-md shadow-saffron/20'
               : 'text-charcoal/80 hover:bg-saffron/10'
               }`}
           >
-            <Heart size={15} className="fill-current text-rose-500" />
+            <GirlIcon size={16} className="text-rose-500" />
             <span>वधू (Bride)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setProfileType('groom')}
-            className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${profileType === 'groom'
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-2 rounded-full text-[11px] sm:text-xs font-extrabold whitespace-nowrap transition-all cursor-pointer ${profileType === 'groom'
               ? 'bg-gradient-to-r from-saffron to-[#C45D14] text-white shadow-md shadow-saffron/20'
               : 'text-charcoal/80 hover:bg-saffron/10'
               }`}
@@ -295,7 +263,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
         {/* Filter Card */}
         <div className="bg-[#FFF3E6] rounded-3xl shadow-sm border border-saffron/15 p-5 md:p-6 space-y-4">
           <form onSubmit={handleSearch} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
               {/* वय (Age) */}
               <div>
                 <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">वय (Age)</label>
@@ -303,7 +271,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={ageRange}
                     onChange={(e) => setAgeRange(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="all">सर्व वयोगट</option>
                     <option value="21-25">२१ ते २५ वर्षे</option>
@@ -322,7 +290,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={caste}
                     onChange={(e) => setCaste(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="सर्व">सर्व समाज</option>
                     {availableCastes.map((c) => (
@@ -342,7 +310,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={educationLevel}
                     onChange={(e) => setEducationLevel(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="सर्व">सर्व शिक्षण</option>
                     {availableEducations.map((edu) => (
@@ -362,7 +330,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={occupationType}
                     onChange={(e) => setOccupationType(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="सर्व">सर्व व्यवसाय</option>
                     {availableOccupations.map((occ) => (
@@ -382,7 +350,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={selectedDistrictId}
                     onChange={handleDistrictChange}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="">सर्व जिल्हे</option>
                     {districts.map((d) => (
@@ -402,7 +370,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full appearance-none px-3.5 py-2.5 rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="सर्व">सर्व शहरे</option>
                     {cities.map((c) => (
@@ -416,18 +384,18 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
               </div>
 
               {/* Action Buttons: शोधा and रीसेट */}
-              <div className="sm:col-span-2 flex items-end gap-2.5">
+              <div className="col-span-2 flex items-end justify-end gap-2.5">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#C45D14] hover:bg-[#A84A0C] text-white rounded-xl font-bold text-xs shadow-md shadow-saffron/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="px-6 py-2 bg-[#C45D14] hover:bg-[#A84A0C] text-white rounded-xl font-bold text-xs shadow-md shadow-saffron/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Search size={15} />
+                  <Search size={14} />
                   <span>शोधा</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="px-5 py-3 bg-white border border-saffron/40 hover:bg-saffron/10 text-[#C45D14] rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="px-6 py-2 bg-white border border-saffron/40 hover:bg-saffron/10 text-[#C45D14] rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw size={14} />
                   <span>रीसेट</span>
@@ -439,9 +407,9 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
       </section>
 
       {/* ── 3. Profile Results Section (matching Image 3 Grid) ────────────── */}
-      <section className="max-w-6xl mx-auto w-full px-4 mt-8">
+      <section className="max-w-5xl mx-auto w-full px-4 mt-6">
         {/* Results Header + Sort Dropdown */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <h3
               className="text-xl sm:text-2xl font-black text-[#C45D14]"
@@ -508,7 +476,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
           </div>
         ) : (
           /* Profile Cards Grid (Target Image 3 Style) */
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {profiles.map((profile) => {
               const isBride = profile.profileType?.toLowerCase() === 'bride';
               const isFav = favorites.includes(profile.id);
@@ -520,12 +488,12 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                   className="group relative bg-white rounded-2xl overflow-hidden border border-saffron/10 shadow-md hover:shadow-xl hover:border-saffron/50 transition-all duration-300 flex flex-col cursor-pointer transform hover:-translate-y-1"
                 >
                   {/* Photo Section */}
-                  <div className="relative w-full aspect-[4/3.4] overflow-hidden bg-cream/40">
+                  <div className="relative w-full aspect-[16/10] overflow-hidden bg-cream/40">
                     {profile.mainPhotoUrl ? (
                       <img
                         src={profile.mainPhotoUrl}
                         alt={profile.displayName}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       /* Clean Neutral Avatar Placeholder — Zero Stock Photos */
@@ -603,46 +571,48 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
         )}
       </section>
 
-      {/* ── 4. Bottom Locked-Profile Banner (matching Image 3 with Orange) ─── */}
-      <section className="	max-w-5xl mx-auto w-full px-4 mt-12">
-        <div className="bg-gradient-to-r from-orange-50/80 via-amber-50 to-orange-50/80 border border-saffron/30 rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
-          <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="p-3.5 bg-saffron text-white rounded-2xl shadow-md shrink-0 hidden sm:flex">
-              <Lock size={26} />
+      {/* ── 4. Bottom Locked-Profile Banner (hidden for logged in matrimony users) ─── */}
+      {!matrimonyUser && (
+        <section className="	max-w-5xl mx-auto w-full px-4 mt-12">
+          <div className="bg-gradient-to-r from-orange-50/80 via-amber-50 to-orange-50/80 border border-saffron/30 rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
+            <div className="flex items-center gap-4 text-center md:text-left">
+              <div className="p-3.5 bg-saffron text-white rounded-2xl shadow-md shrink-0 hidden sm:flex">
+                <Lock size={26} />
+              </div>
+              <div>
+                <h4
+                  className="text-lg sm:text-xl font-bold text-saffron-dark mb-1"
+                  style={{ fontFamily: "'Baloo 2', sans-serif" }}
+                >
+                  संपूर्ण प्रोफाइल आणि संपर्क माहिती पाहण्यासाठी
+                </h4>
+                <p className="text-xs sm:text-sm text-charcoal/80">
+                  नोंदणी करा किंवा लॉगिन करा.
+                </p>
+              </div>
             </div>
-            <div>
-              <h4
-                className="text-lg sm:text-xl font-bold text-saffron-dark mb-1"
-                style={{ fontFamily: "'Baloo 2', sans-serif" }}
-              >
-                संपूर्ण प्रोफाइल आणि संपर्क माहिती पाहण्यासाठी
-              </h4>
-              <p className="text-xs sm:text-sm text-charcoal/80">
-                नोंदणी करा किंवा लॉगिन करा.
-              </p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={onGoToRegister}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-saffron hover:bg-saffron-dark text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-            >
-              <UserPlus size={15} />
-              <span>नोंदणी करा</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLoginModal(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-saffron text-saffron-dark hover:bg-saffron/10 font-bold text-xs transition-colors cursor-pointer"
-            >
-              <LogIn size={15} />
-              <span>लॉगिन</span>
-            </button>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={onGoToRegister}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-saffron hover:bg-saffron-dark text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+              >
+                <UserPlus size={15} />
+                <span>नोंदणी करा</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLoginModal(true)}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-saffron text-saffron-dark hover:bg-saffron/10 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <LogIn size={15} />
+                <span>लॉगिन</span>
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Matrimony Login Modal */}
       <MatrimonyLoginModal

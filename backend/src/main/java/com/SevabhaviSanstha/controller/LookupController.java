@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/lookups")
+@RequestMapping({"/api/lookups", "/api"})
 public class LookupController {
 
     @Autowired
@@ -31,6 +31,9 @@ public class LookupController {
     @Autowired
     private GenderRepository genderRepository;
 
+    @Autowired
+    private AreaRepository areaRepository;
+
     @GetMapping("/states")
     public List<State> getStates() {
         return stateRepository.findAll();
@@ -44,6 +47,11 @@ public class LookupController {
     @GetMapping("/talukas")
     public List<Taluka> getTalukas(@RequestParam Integer districtId) {
         return talukaRepository.findByDistrictId(districtId);
+    }
+
+    @GetMapping("/areas")
+    public List<Area> getAreas(@RequestParam Integer talukaId) {
+        return areaRepository.findActiveByTalukaId(talukaId);
     }
 
     @GetMapping("/cities")

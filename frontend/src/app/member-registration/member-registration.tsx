@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import StepIndicator from '../../components/StepIndicator';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Crown, RefreshCw, QrCode, Upload, Loader2, Plus, Pencil, Trash2, Lock, CreditCard, X, Smartphone, Calendar, Download, Eye, Printer, RotateCcw } from 'lucide-react';
-import { api, BASE_URL, type State, type District, type Taluka, type Gender, type MaritalStatus, type BloodGroup, type PaymentSettingResponse } from '../../services/api';
+import { api, BASE_URL, type State, type District, type Taluka, type Area, type Gender, type MaritalStatus, type BloodGroup, type PaymentSettingResponse } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage, deleteImage, fetchByCategory, imageUrl, type GalleryImage } from '../../services/galleryApi';
 import { buildUpiLink } from '../../utils/upi';
@@ -24,6 +25,7 @@ export const MemberRegistrationPage: React.FC = () => {
   const [states, setStates] = useState<State[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [talukas, setTalukas] = useState<Taluka[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [genders, setGenders] = useState<Gender[]>([]);
   const [bloodGroups, setBloodGroups] = useState<BloodGroup[]>([]);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
@@ -232,6 +234,7 @@ export const MemberRegistrationPage: React.FC = () => {
     stateId: string;
     districtId: string;
     talukaId: string;
+    areaId: string;
     pincode: string;
     memberType: string;
     idProofNumber: string;
@@ -265,6 +268,7 @@ export const MemberRegistrationPage: React.FC = () => {
       stateId: '',
       districtId: '',
       talukaId: '',
+      areaId: '',
       pincode: '',
 
       // Step 3: अतिरिक्त माहिती
@@ -343,6 +347,9 @@ export const MemberRegistrationPage: React.FC = () => {
       if (formData.districtId) {
         api.getTalukas(Number(formData.districtId)).then(setTalukas).catch(console.error);
       }
+      if (formData.talukaId) {
+        api.getAreas(Number(formData.talukaId)).then(setAreas).catch(console.error);
+      }
 
       // Reconcile with server draft if draftId exists
       if (localDraft?.draftId) {
@@ -357,6 +364,9 @@ export const MemberRegistrationPage: React.FC = () => {
               }
               if (parsedFormData.districtId) {
                 api.getTalukas(Number(parsedFormData.districtId)).then(setTalukas).catch(console.error);
+              }
+              if (parsedFormData.talukaId) {
+                api.getAreas(Number(parsedFormData.talukaId)).then(setAreas).catch(console.error);
               }
             }
             if (serverDraft.currentStep !== undefined) setCurrentStep(serverDraft.currentStep);
@@ -506,9 +516,10 @@ export const MemberRegistrationPage: React.FC = () => {
 
   const handleStateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const stateIdVal = e.target.value;
-    setFormData(prev => ({ ...prev, stateId: stateIdVal, districtId: '', talukaId: '' }));
+    setFormData(prev => ({ ...prev, stateId: stateIdVal, districtId: '', talukaId: '', areaId: '' }));
     setDistricts([]);
     setTalukas([]);
+    setAreas([]);
     if (errors.stateId) {
       setErrors((prev) => ({ ...prev, stateId: undefined }));
     }
@@ -524,8 +535,9 @@ export const MemberRegistrationPage: React.FC = () => {
 
   const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const districtIdVal = e.target.value;
-    setFormData(prev => ({ ...prev, districtId: districtIdVal, talukaId: '' }));
+    setFormData(prev => ({ ...prev, districtId: districtIdVal, talukaId: '', areaId: '' }));
     setTalukas([]);
+    setAreas([]);
     if (errors.districtId) {
       setErrors((prev) => ({ ...prev, districtId: undefined }));
     }
@@ -535,6 +547,23 @@ export const MemberRegistrationPage: React.FC = () => {
         setTalukas(data);
       } catch (err) {
         console.error('Error loading talukas:', err);
+      }
+    }
+  };
+
+  const handleTalukaChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const talukaIdVal = e.target.value;
+    setFormData(prev => ({ ...prev, talukaId: talukaIdVal, areaId: '' }));
+    setAreas([]);
+    if (errors.talukaId) {
+      setErrors((prev) => ({ ...prev, talukaId: undefined }));
+    }
+    if (talukaIdVal) {
+      try {
+        const data = await api.getAreas(Number(talukaIdVal));
+        setAreas(data);
+      } catch (err) {
+        console.error('Error loading areas:', err);
       }
     }
   };
@@ -597,6 +626,7 @@ export const MemberRegistrationPage: React.FC = () => {
           state: { id: Number(formData.stateId) },
           district: { id: Number(formData.districtId) },
           taluka: { id: Number(formData.talukaId) },
+          area: formData.areaId ? { id: Number(formData.areaId) } : null,
           pincode: formData.pincode,
           memberType: formData.memberType,
           idProofNumber: formData.idProofNumber || null,
@@ -670,6 +700,7 @@ export const MemberRegistrationPage: React.FC = () => {
           state: { id: Number(formData.stateId) },
           district: { id: Number(formData.districtId) },
           taluka: { id: Number(formData.talukaId) },
+          area: formData.areaId ? { id: Number(formData.areaId) } : null,
           pincode: formData.pincode,
           memberType: formData.memberType,
           idProofNumber: formData.idProofNumber || null,
@@ -822,6 +853,7 @@ export const MemberRegistrationPage: React.FC = () => {
   const selectedState = states.find(s => s.id === Number(formData.stateId));
   const selectedDistrict = districts.find(d => d.id === Number(formData.districtId));
   const selectedTaluka = talukas.find(t => t.id === Number(formData.talukaId));
+  const selectedArea = areas.find(a => a.id === Number(formData.areaId));
   const selectedGenderLabel = genders.find(g => g.code === formData.gender)?.labelMr || formData.gender;
   const selectedBloodLabel = bloodGroups.find(b => b.code === formData.bloodGroup)?.labelMr || formData.bloodGroup;
   const selectedMaritalLabel = maritalStatuses.find(m => m.code === formData.maritalStatus)?.labelMr || formData.maritalStatus;
@@ -1053,6 +1085,9 @@ export const MemberRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">तालुका / जिल्हा / राज्य:</span> <span className="font-bold text-charcoal">{selectedTaluka?.nameMr || selectedTaluka?.nameEn || ''}, {selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
+                    {selectedArea && (
+                      <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भाग / एरिया:</span> <span className="font-bold text-charcoal">{selectedArea.nameMr || selectedArea.nameEn}</span></div>
+                    )}
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पिनकोड:</span> <span className="font-bold text-charcoal">{formData.pincode || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.currentAddress || '-'}</span></div>
                     {formData.permanentAddress && (
@@ -1180,16 +1215,11 @@ export const MemberRegistrationPage: React.FC = () => {
                   <div>
                     <label className="block text-xs font-bold text-charcoal/75 mb-1">जन्म तारीख <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="date"
+                    <DatePickerDropdown
                       name="birthDate"
                       value={formData.birthDate}
                       onChange={handleInputChange}
-                      max={getTodayDateString()}
-                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.birthDate
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                        }`}
+                      hasError={!!errors.birthDate}
                     />
                     {errors.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
                   </div>
@@ -1415,7 +1445,7 @@ export const MemberRegistrationPage: React.FC = () => {
                   />
                   {errors.permanentAddress && <p className="text-red-500 text-xs mt-1">{errors.permanentAddress}</p>}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-charcoal/75 mb-1">राज्य <span className="text-red-500">*</span>
                     </label>
@@ -1461,7 +1491,7 @@ export const MemberRegistrationPage: React.FC = () => {
                     <select
                       name="talukaId"
                       value={formData.talukaId}
-                      onChange={handleInputChange}
+                      onChange={handleTalukaChange}
                       disabled={!formData.districtId}
                       className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.talukaId
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
@@ -1474,6 +1504,21 @@ export const MemberRegistrationPage: React.FC = () => {
                       ))}
                     </select>
                     {errors.talukaId && <p className="text-red-500 text-xs mt-1">{errors.talukaId}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-charcoal/75 mb-1">भाग / एरिया</label>
+                    <select
+                      name="areaId"
+                      value={formData.areaId}
+                      onChange={handleInputChange}
+                      disabled={!formData.talukaId}
+                      className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                    >
+                      <option value="">निवडा (ऐच्छिक)</option>
+                      {areas.map(a => (
+                        <option key={a.id} value={a.id}>{a.nameMr || a.nameEn}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-charcoal/75 mb-1">पिनकोड <span className="text-red-500">*</span>
@@ -2064,6 +2109,9 @@ export const MemberRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">तालुका / जिल्हा / राज्य:</span> <span className="font-bold text-charcoal">{selectedTaluka?.nameMr || selectedTaluka?.nameEn || ''}, {selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
+                    {selectedArea && (
+                      <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भाग / एरिया:</span> <span className="font-bold text-charcoal">{selectedArea.nameMr || selectedArea.nameEn}</span></div>
+                    )}
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पिनकोड:</span> <span className="font-bold text-charcoal">{formData.pincode || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.currentAddress || '-'}</span></div>
                     {formData.permanentAddress && (

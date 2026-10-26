@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StepIndicator from '../../components/StepIndicator';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, Loader2, CreditCard,
   Calendar, MapPin, User, Printer, ShieldCheck, Pencil, Trash2,
@@ -1017,13 +1018,11 @@ export const ShibirRegistrationPage: React.FC = () => {
                   {/* Birth Date */}
                   <div>
                     <label className="block text-xs sm:text-sm font-normal text-charcoal/80 mb-1">जन्म तारीख <span className="text-red-500">*</span></label>
-                    <input
-                      type="date"
+                    <DatePickerDropdown
                       name="birthDate"
-                      max={todayDate}
                       value={formData.birthDate}
                       onChange={handleInputChange}
-                      className={`w-full px-3.5 py-2.5 rounded-xl border ${errors.birthDate ? 'border-red-500 bg-red-50' : 'border-gray-300'} focus:ring-2 focus:ring-saffron text-sm`}
+                      hasError={!!errors.birthDate}
                     />
                     {errors.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
                   </div>

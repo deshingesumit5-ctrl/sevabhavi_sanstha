@@ -1,5 +1,5 @@
-	import React from 'react';
-	import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,10 +11,11 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
-  notificationCount = 3,
+  notificationCount = 0,
 }) => {
   const { isAdmin, logout } = useAuth();
   const navigate = useNavigate();
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
 
   const isMatrimonyRoute =
@@ -59,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full relative transition-colors focus:outline-none"
           aria-label="Notifications"
-          onClick={() => alert('नवीन नोटिफिकेशन्स नाहीत.')}
+              onClick={() => setShowNotifModal(true)}
         >
           <Bell size={24} className="stroke-[2.2]" />
           {notificationCount > 0 && (
@@ -82,6 +83,34 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
       </div>
+
+      {/* Notification modal: centered on mobile and laptop */}
+      {showNotifModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+          onClick={() => setShowNotifModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl border-2 border-saffron shadow-2xl w-full max-w-xs aspect-square p-6 flex flex-col items-center justify-center text-center gap-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-14 h-14 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-saffron">
+              <Bell size={28} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-charcoal">सूचना</h3>
+              <p className="text-sm font-medium text-charcoal/80">नवीन नोटिफिकेशन्स नाहीत.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNotifModal(false)}
+              className="w-full py-2.5 rounded-xl bg-saffron hover:bg-saffron-dark text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            >
+            Ok
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import StepIndicator from '../../components/StepIndicator';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import {
   ArrowLeft,
   ArrowRight,
@@ -51,7 +52,7 @@ export const DonationRegistrationPage: React.FC = () => {
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(null);
 
   // Modal confirm state
-  const [confirmState, setConfirmState] = useState<ConfirmState>({ open: false, message: '', onConfirm: () => { } });
+  const [confirmState, setConfirmState] = useState<ConfirmState>({ open: false, message: '', onConfirm: () => {} });
   const closeConfirm = () => setConfirmState(prev => ({ ...prev, open: false }));
   const askConfirm = (message: string, onConfirm: () => void) =>
     setConfirmState({ open: true, message, onConfirm });
@@ -727,12 +728,9 @@ export const DonationRegistrationPage: React.FC = () => {
                   <label className="block text-xs font-bold text-charcoal/75 mb-1">
                     जन्म तारीख
                   </label>
-                  <input
-                    type="date"
-                    name="birthDate"
+                  <DatePickerDropdown
                     value={formData.birthDate}
-                    onChange={handleInputChange}
-                    className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                    onChange={(event) => setFormData({ ...formData, birthDate: event.target.value })}
                   />
                 </div>
 

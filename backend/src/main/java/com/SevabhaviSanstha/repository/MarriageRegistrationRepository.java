@@ -24,6 +24,6 @@ public interface MarriageRegistrationRepository extends JpaRepository<MarriageRe
 
     Page<MarriageRegistration> findByApprovalStatus(String approvalStatus, Pageable pageable);
 
-    @Query("SELECT m FROM MarriageRegistration m WHERE m.approvalStatus = 'APPROVED' AND m.profileType <> :profileType AND m.id <> :excludeId ORDER BY m.createdAt DESC")
-    List<MarriageRegistration> findSimilarProfiles(@Param("profileType") String profileType, @Param("excludeId") Integer excludeId, Pageable pageable);
+    @Query("SELECT m FROM MarriageRegistration m WHERE m.approvalStatus = 'APPROVED' AND m.profileType <> :profileType AND m.id <> :excludeId AND (:currentUserId IS NULL OR m.id <> :currentUserId) ORDER BY m.createdAt DESC")
+    List<MarriageRegistration> findSimilarProfiles(@Param("profileType") String profileType, @Param("excludeId") Integer excludeId, @Param("currentUserId") Integer currentUserId, Pageable pageable);
 }

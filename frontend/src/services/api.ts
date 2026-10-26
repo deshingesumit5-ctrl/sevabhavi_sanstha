@@ -69,6 +69,14 @@ export interface Taluka {
   nameEn: string;
 }
 
+export interface Area {
+  id: number;
+  taluka?: Taluka;
+  nameMr: string;
+  nameEn: string;
+  isActive?: boolean;
+}
+
 export interface City {
   id: number;
   district?: District;
@@ -111,6 +119,7 @@ export interface MemberRegistrationData {
   state: State;
   district: District;
   taluka: Taluka;
+  area?: Area | null;
   pincode: string;
   memberType: string;
   idProofNumber: string | null;
@@ -556,6 +565,19 @@ export const api = {
     return cachedFetch(`talukas_${districtId}`, async () => {
       const res = await fetch(`${BASE_URL}/lookups/talukas?districtId=${districtId}`);
       if (!res.ok) throw new Error('Failed to fetch talukas');
+      return res.json();
+    });
+  },
+
+  getAreas: async (talukaId: number): Promise<Area[]> => {
+    return cachedFetch(`areas_${talukaId}`, async () => {
+      const res = await fetch(`${BASE_URL}/areas?talukaId=${talukaId}`);
+      if (!res.ok) {
+        // Fallback to /lookups/areas if needed
+        const fallbackRes = await fetch(`${BASE_URL}/lookups/areas?talukaId=${talukaId}`);
+        if (!fallbackRes.ok) throw new Error('Failed to fetch areas');
+        return fallbackRes.json();
+      }
       return res.json();
     });
   },

@@ -61,6 +61,10 @@ public class MemberRegistration {
     @JoinColumn(name = "taluka_id", nullable = false)
     private Taluka taluka;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "area_id")
+    private Area area;
+
     @Column(name = "pincode", nullable = false, length = 10)
     private String pincode;
 

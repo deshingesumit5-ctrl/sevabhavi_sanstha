@@ -37,7 +37,7 @@ export const MatrimonyProfileDetail: React.FC = () => {
   const [publicProfile, setPublicProfile] = useState<MatrimonyPublicProfile | null>(null);
   const [fullProfile, setFullProfile] = useState<MatrimonyFullProfile | null>(null);
   const [similarProfiles, setSimilarProfiles] = useState<MatrimonyPublicProfile[]>([]);
-  const [activeTab, setActiveTab] = useState<'basic' | 'education' | 'family' | 'personal' | 'photos'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'education' | 'family' | 'personal' | 'photos' | 'contact'>('basic');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
@@ -47,6 +47,13 @@ export const MatrimonyProfileDetail: React.FC = () => {
   // Load Profile from DB
   useEffect(() => {
     if (!profileId) return;
+
+    // If the logged-in user opens their own profile URL directly, redirect to /marriage-registration
+    if (matrimonyUser && matrimonyUser.id === profileId) {
+      navigate('/marriage-registration', { replace: true });
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -65,8 +72,11 @@ export const MatrimonyProfileDetail: React.FC = () => {
           try {
             const full = await api.getMatrimonyFullProfile(profileId);
             setFullProfile(full);
-          } catch {
-            // Unsubscribed or unauthorized
+          } catch (err: any) {
+            // Subscription expired or unauthorized
+            if (err?.message && err.message.includes('नूतनीकरण')) {
+              setError(err.message);
+            }
           }
         }
       } catch (err: any) {
@@ -77,7 +87,7 @@ export const MatrimonyProfileDetail: React.FC = () => {
     };
 
     loadData();
-  }, [profileId, matrimonyUser]);
+  }, [profileId, matrimonyUser, navigate]);
 
   const isFavorite = favorites.includes(profileId);
 
@@ -215,8 +225,8 @@ export const MatrimonyProfileDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Middle Column: Profile Summary Details (4 cols) */}
-          <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-saffron/20 shadow-xs space-y-4">
+          {/* Middle Column: Profile Summary Details (4 cols or 8 cols if full access) */}
+          <div className={`${hasFullAccess ? 'lg:col-span-8' : 'lg:col-span-4'} bg-white rounded-3xl p-6 border border-saffron/20 shadow-xs space-y-4`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span
                 className={`px-3 py-0.5 rounded-full text-xs font-extrabold shadow-xs ${
@@ -297,46 +307,48 @@ export const MatrimonyProfileDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Locked Profile CTA Sidebar Card (matching Image 4) (4 cols) */}
-          <div className="lg:col-span-4 bg-[#FFF5EC] border border-saffron/30 rounded-3xl p-6 text-center shadow-xs space-y-4">
-            <div className="w-12 h-12 bg-saffron text-white rounded-full flex items-center justify-center mx-auto shadow-sm">
-              <Lock size={22} />
+          {/* Right Column: Locked Profile CTA Sidebar Card (shown ONLY for guests / non-full-access) */}
+          {!hasFullAccess && (
+            <div className="lg:col-span-4 bg-[#FFF5EC] border border-saffron/30 rounded-3xl p-6 text-center shadow-xs space-y-4">
+              <div className="w-12 h-12 bg-saffron text-white rounded-full flex items-center justify-center mx-auto shadow-sm">
+                <Lock size={22} />
+              </div>
+
+              <div>
+                <h4
+                  className="text-base font-bold text-saffron-dark mb-1"
+                  style={{ fontFamily: "'Baloo 2', sans-serif" }}
+                >
+                  संपूर्ण प्रोफाइल पाहण्यासाठी नोंदणी करा
+                </h4>
+                <p className="text-xs text-charcoal/70 leading-relaxed">
+                  या सदस्याची संपूर्ण माहिती, संपर्क तपशील आणि अधिक फोटो पाहण्यासाठी कृपया नोंदणी करा किंवा लॉगिन करा.
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate('/marriage-registration?tab=register')}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-saffron hover:bg-saffron-dark text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                >
+                  <UserPlus size={14} />
+                  <span>आता नोंदणी करा</span>
+                </button>
+
+                <div className="text-xs text-charcoal/40 font-bold">किंवा</div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowLoginModal(true)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-saffron text-saffron-dark hover:bg-saffron/10 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                >
+                  <LogIn size={14} />
+                  <span>लॉगिन करा</span>
+                </button>
+              </div>
             </div>
-
-            <div>
-              <h4
-                className="text-base font-bold text-saffron-dark mb-1"
-                style={{ fontFamily: "'Baloo 2', sans-serif" }}
-              >
-                संपूर्ण प्रोफाइल पाहण्यासाठी नोंदणी करा
-              </h4>
-              <p className="text-xs text-charcoal/70 leading-relaxed">
-                या सदस्याची संपूर्ण माहिती, संपर्क तपशील आणि अधिक फोटो पाहण्यासाठी कृपया नोंदणी करा किंवा लॉगिन करा.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-1">
-              <button
-                type="button"
-                onClick={() => navigate('/marriage-registration?tab=register')}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-saffron hover:bg-saffron-dark text-white rounded-xl font-bold text-xs shadow-xs transition-colors cursor-pointer"
-              >
-                <UserPlus size={14} />
-                <span>आता नोंदणी करा</span>
-              </button>
-
-              <div className="text-xs text-charcoal/40 font-bold">किंवा</div>
-
-              <button
-                type="button"
-                onClick={() => setShowLoginModal(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 border border-saffron text-saffron-dark hover:bg-saffron/10 rounded-xl font-bold text-xs transition-colors cursor-pointer"
-              >
-                <LogIn size={14} />
-                <span>लॉगिन करा</span>
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── Details Tabs (matching Target Image 4) ───────────────────────── */}
@@ -401,6 +413,18 @@ export const MatrimonyProfileDetail: React.FC = () => {
             >
               <Camera size={15} />
               <span>अधिक फोटो</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('contact')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                activeTab === 'contact'
+                  ? 'bg-saffron text-white shadow-xs'
+                  : 'text-charcoal/70 hover:bg-cream-dark/30'
+              }`}
+            >
+              <Phone size={15} />
+              <span>संपर्क माहिती</span>
             </button>
           </div>
 
@@ -645,14 +669,68 @@ export const MatrimonyProfileDetail: React.FC = () => {
                     )}
                   </div>
                 )}
+
+                {activeTab === 'contact' && (
+                  <div className="space-y-3">
+                    <h4
+                      className="text-base font-bold text-charcoal flex items-center gap-2"
+                      style={{ fontFamily: "'Baloo 2', sans-serif" }}
+                    >
+                      <Phone size={16} className="text-saffron" />
+                      <span>संपर्क माहिती</span>
+                    </h4>
+
+                    {hasFullAccess ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div className="flex items-center gap-3 p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800">
+                          <Phone size={18} />
+                          <div>
+                            <p className="text-[10px] font-semibold">उमेदवाराचा मोबाईल नंबर</p>
+                            <p className="font-mono font-bold text-sm">{fullProfile?.mobile || '-'}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800">
+                          <Phone size={18} />
+                          <div>
+                            <p className="text-[10px] font-semibold">पालकांचा मोबाईल नंबर</p>
+                            <p className="font-mono font-bold text-sm">{fullProfile?.parentMobile || '-'}</p>
+                          </div>
+                        </div>
+
+                        {fullProfile?.email && (
+                          <div className="flex items-center gap-3 p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 sm:col-span-2">
+                            <div>
+                              <p className="text-[10px] font-semibold">ईमेल आयडी</p>
+                              <p className="font-medium text-xs">{fullProfile.email}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-5 rounded-2xl bg-amber-50/60 border border-saffron/20 text-center space-y-3">
+                        <Lock size={22} className="mx-auto text-saffron" />
+                        <p className="text-xs font-bold text-charcoal">
+                          संपर्क माहिती पाहण्यासाठी अधिकृत नोंदणी किंवा लॉगिन करा.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowLoginModal(true)}
+                          className="px-4 py-1.5 bg-saffron text-white rounded-xl text-xs font-bold cursor-pointer"
+                        >
+                          लॉगिन करा
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Tab Right Locked / Blurred Preview Card (matching Target Image 4) (5 cols) */}
-              <div className="lg:col-span-5">
-                {!hasFullAccess ? (
+              {/* Tab Right Locked / Blurred Preview Card (shown ONLY for guests / non-full-access) */}
+              {!hasFullAccess && (
+                <div className="lg:col-span-5">
                   <div className="rounded-2xl overflow-hidden border-2 border-saffron/30 p-5 bg-gradient-to-b from-[#FFF5EC] to-amber-50/60 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row gap-4 items-center">
-                      {/* Blurred Avatar with Lock in Center */}
                       <div className="relative w-28 h-36 rounded-xl overflow-hidden bg-gradient-to-tr from-saffron/20 to-amber-100 flex items-center justify-center shrink-0 border border-saffron/30">
                         <div className="absolute inset-0 bg-white/40 backdrop-blur-md" />
                         <div className="relative w-10 h-10 rounded-full bg-saffron text-white flex items-center justify-center shadow-md">
@@ -660,7 +738,6 @@ export const MatrimonyProfileDetail: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Heading & description */}
                       <div className="flex-1 text-center sm:text-left">
                         <h5
                           className="text-sm font-bold text-saffron-dark mb-1"
@@ -674,7 +751,6 @@ export const MatrimonyProfileDetail: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Bullet Checklist matching Image 4 */}
                     <ul className="space-y-1.5 text-xs font-semibold text-charcoal/80 bg-white/80 p-3.5 rounded-xl border border-saffron/20">
                       <li className="flex items-center gap-2">
                         <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
@@ -702,7 +778,6 @@ export const MatrimonyProfileDetail: React.FC = () => {
                       </li>
                     </ul>
 
-                    {/* Action button & link */}
                     <button
                       type="button"
                       onClick={() => navigate('/marriage-registration?tab=register')}
@@ -723,57 +798,49 @@ export const MatrimonyProfileDetail: React.FC = () => {
                       </button>
                     </p>
                   </div>
-                ) : (
-                  <div className="rounded-2xl border-2 border-emerald-300 p-6 bg-emerald-50/50 space-y-4">
-                    <div className="flex items-center gap-2 text-emerald-800 font-bold text-sm">
-                      <CheckCircle2 size={18} />
-                      <span>सक्रिय सदस्यत्व उपलब्ध</span>
-                    </div>
-                    <p className="text-xs text-charcoal/70">
-                      आपले सदस्यत्व चालू आहे. आपण या सदस्याची संपूर्ण माहिती आणि संपर्क क्रमांक पाहू शकता.
-                    </p>
-                  </div>
-                )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── "हा प्रोफाइल आवडला का?" Strip (hidden for logged-in matrimony user) ──────── */}
+        {!matrimonyUser && (
+          <div className="bg-white rounded-3xl p-5 border border-saffron/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-saffron/10 text-saffron rounded-2xl">
+                <Users size={22} />
+              </div>
+              <div>
+                <h5
+                  className="text-sm font-bold text-charcoal"
+                  style={{ fontFamily: "'Baloo 2', sans-serif" }}
+                >
+                  हा प्रोफाइल आवडला का?
+                </h5>
+                <p className="text-xs text-charcoal/60">
+                  नोंदणी करून आवडीची प्रोफाइल सेव्ह करा, नंतर पुन्हा पाहण्यासाठी.
+                </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* ── "हा प्रोफाइल आवडला का?" Strip (matching Target Image 4) ──────── */}
-        <div className="bg-white rounded-3xl p-5 border border-saffron/20 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-saffron/10 text-saffron rounded-2xl">
-              <Users size={22} />
-            </div>
-            <div>
-              <h5
-                className="text-sm font-bold text-charcoal"
-                style={{ fontFamily: "'Baloo 2', sans-serif" }}
+            <div className="flex flex-col items-center sm:items-end">
+              <button
+                type="button"
+                onClick={handleFavoriteClick}
+                className={`px-5 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  isFavorite
+                    ? 'border-rose-400 bg-rose-50 text-rose-600 shadow-xs'
+                    : 'border-saffron/40 hover:bg-saffron hover:text-white text-saffron-dark'
+                }`}
               >
-                हा प्रोफाइल आवडला का?
-              </h5>
-              <p className="text-xs text-charcoal/60">
-                नोंदणी करून आवडीची प्रोफाइल सेव्ह करा, नंतर पुन्हा पाहण्यासाठी.
-              </p>
+                <Heart size={15} className={isFavorite ? 'fill-rose-600' : ''} />
+                <span>{isFavorite ? 'आवडले ✓' : 'आवडले'}</span>
+              </button>
+              <span className="text-[10px] text-charcoal/50 mt-1">(नोंदणीनंतर उपलब्ध)</span>
             </div>
           </div>
-
-          <div className="flex flex-col items-center sm:items-end">
-            <button
-              type="button"
-              onClick={handleFavoriteClick}
-              className={`px-5 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-                isFavorite
-                  ? 'border-rose-400 bg-rose-50 text-rose-600 shadow-xs'
-                  : 'border-saffron/40 hover:bg-saffron hover:text-white text-saffron-dark'
-              }`}
-            >
-              <Heart size={15} className={isFavorite ? 'fill-rose-600' : ''} />
-              <span>{isFavorite ? 'आवडले ✓' : 'आवडले'}</span>
-            </button>
-            <span className="text-[10px] text-charcoal/50 mt-1">(नोंदणीनंतर उपलब्ध)</span>
-          </div>
-        </div>
+        )}
 
         {/* ── Similar Profiles Carousel (matching Target Image 4) ──────────── */}
         {similarProfiles.length > 0 && (

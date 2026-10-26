@@ -149,6 +149,11 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             // Rule: ONLY show APPROVED profiles
             predicates.add(cb.equal(root.get("approvalStatus"), "APPROVED"));
 
+            // Exclude current logged in matrimony user's own profile
+            if (currentUserId != null) {
+                predicates.add(cb.notEqual(root.get("id"), currentUserId));
+            }
+
             if (filter != null) {
                 // Gender / Profile Type
                 if (filter.getProfileType() != null && !filter.getProfileType().isBlank() && !"all".equalsIgnoreCase(filter.getProfileType())) {
@@ -171,14 +176,20 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                     predicates.add(cb.like(cb.lower(root.get("caste")), "%" + filter.getCaste().toLowerCase().trim() + "%"));
                 }
 
-                // Education Level
+                // Education Level or Degree Name
                 if (filter.getEducationLevel() != null && !filter.getEducationLevel().isBlank() && !"सर्व".equals(filter.getEducationLevel())) {
-                    predicates.add(cb.equal(root.get("educationLevel"), filter.getEducationLevel().trim()));
+                    String edu = filter.getEducationLevel().toLowerCase().trim();
+                    predicates.add(cb.or(
+                            cb.equal(cb.lower(root.get("educationLevel")), edu),
+                            cb.equal(cb.lower(root.get("degreeName")), edu),
+                            cb.like(cb.lower(root.get("educationLevel")), "%" + edu + "%"),
+                            cb.like(cb.lower(root.get("degreeName")), "%" + edu + "%")
+                    ));
                 }
 
                 // Occupation Type
                 if (filter.getOccupationType() != null && !filter.getOccupationType().isBlank() && !"सर्व".equals(filter.getOccupationType())) {
-                    predicates.add(cb.equal(root.get("occupationType"), filter.getOccupationType().trim()));
+                    predicates.add(cb.equal(cb.lower(root.get("occupationType")), filter.getOccupationType().toLowerCase().trim()));
                 }
 
                 // State
@@ -200,13 +211,18 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
-        // Determine sorting
+        // Determine sorting (support both created_desc/createdDesc, age_asc/ageAsc, age_desc/ageDesc)
         Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
         if (filter != null && filter.getSort() != null) {
-            if ("ageAsc".equalsIgnoreCase(filter.getSort())) {
+            String s = filter.getSort().trim();
+            if ("ageAsc".equalsIgnoreCase(s) || "age_asc".equalsIgnoreCase(s)) {
                 sort = Sort.by(Sort.Direction.DESC, "birthDate"); // Younger first
-            } else if ("ageDesc".equalsIgnoreCase(filter.getSort())) {
+            } else if ("ageDesc".equalsIgnoreCase(s) || "age_desc".equalsIgnoreCase(s)) {
                 sort = Sort.by(Sort.Direction.ASC, "birthDate"); // Older first
+            } else if ("createdAsc".equalsIgnoreCase(s) || "created_asc".equalsIgnoreCase(s)) {
+                sort = Sort.by(Sort.Direction.ASC, "createdAt");
+            } else {
+                sort = Sort.by(Sort.Direction.DESC, "createdAt");
             }
         }
 
@@ -261,6 +277,7 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
         List<MarriageRegistration> list = marriageRegistrationRepository.findSimilarProfiles(
                 current.getProfileType(),
                 profileId,
+                currentUserId,
                 pageable
         );
 

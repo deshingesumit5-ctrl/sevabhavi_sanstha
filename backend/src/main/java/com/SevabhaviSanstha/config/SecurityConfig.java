@@ -73,6 +73,7 @@ public class SecurityConfig {
 
                         // 2. Public Lookups (Public GET)
                         .requestMatchers(HttpMethod.GET, "/api/lookups/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/areas").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/religions").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/heights").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shibir-masters").permitAll()

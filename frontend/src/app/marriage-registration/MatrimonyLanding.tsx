@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Users, FileText, Heart, LogIn, LogOut, User } from 'lucide-react';
+import { Users, FileText, Heart, LogOut, User } from 'lucide-react';
 import MatrimonyDirectory from './MatrimonyDirectory';
 import MarriageRegistrationPage from './marriage_registration';
 import { useMatrimonyAuth } from '../../context/MatrimonyAuthContext';
-import MatrimonyLoginModal from '../../components/MatrimonyLoginModal';
 
 export const MatrimonyLanding: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'directory';
   const [activeTab, setActiveTab] = useState<'directory' | 'register'>(initialTab);
   const { matrimonyUser, logout: matrimonyLogout } = useMatrimonyAuth();
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -70,8 +68,7 @@ export const MatrimonyLanding: React.FC = () => {
               </button>
             </div>
 
-            {/* Matrimony Login Button in sub-header per CHANGE 3 */}
-            {matrimonyUser ? (
+            {matrimonyUser && (
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-saffron/10 border border-saffron/20 text-xs font-bold text-saffron-dark">
                 <User size={13} className="text-saffron" />
                 <span className="truncate max-w-[100px]">{matrimonyUser.fullName.split(' ')[0]}</span>
@@ -83,15 +80,6 @@ export const MatrimonyLanding: React.FC = () => {
                   <LogOut size={12} />
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowLoginModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-saffron/40 hover:bg-saffron text-saffron hover:text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
-              >
-                <LogIn size={13} />
-                <span>लॉगिन</span>
-              </button>
             )}
           </div>
         </div>
@@ -106,11 +94,7 @@ export const MatrimonyLanding: React.FC = () => {
         )}
       </div>
 
-      <MatrimonyLoginModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        onSuccess={() => setShowLoginModal(false)}
-      />
+  
     </div>
   );
 };
