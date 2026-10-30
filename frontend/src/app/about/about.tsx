@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Eye, X } from 'lucide-react';
 import { uploadImage, imageUrl, deleteImage, fetchByCategory, type GalleryImage } from '../../services/galleryApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -25,6 +25,11 @@ import photoRajendraKadam from '../../assets/members_photos/shree.rajabhau.kadam
 
 const ABOUT_TEXT =
   "सस्नेह नमस्कार ! आपली दापोली मंडणगड सेवाभावी संस्था, पुणे आजतागायत वेगवेगळ्या यथोचित उपक्रमातून दोन तालुक्यांतीलच नव्हे तर सर्व कोकणी माणसाच्या सर्वांगीण विकासासाठी प्रयत्नशील राहून काम करत आहे. भविष्यात आपल्या सर्वांच्या सकारात्मक प्रतिसादाने, सहकार्याने संचालक मंडळ आपल्या सर्वांना सोबत घेऊन 'एकमेकां सहाय्य करू, अवघे धरू सुपंथ' या वृत्तीने आपल्या ध्येयाकडे वाटचाल करत राहिल, अशी ग्वाही आम्ही देत आहोत. बंधुनो संस्थेच्या याच ध्येय उद्दिष्टांच्या पूर्ततेसाठी आपल्यासारख्या बंधू भगिनींना संस्थेचे सदस्यत्व देऊन या प्रवाहात आणण्याचा आमचा हा छोटासा प्रयत्न आहे. संस्थेमध्ये सर्वधर्म समभाव, तसेच कोणत्याही प्रकारचा जातीयवाद न बाळगता राजकारण विरहित कार्य करत तळागाळातील सर्व कोकणी माणसाच्या सर्वांगीण विकासासाठी आपण सर्व बंधू भगिनी यशस्वीपणे वाटचाल सुरू ठेऊन आपल्या या संस्थेला नावलौकिक मिळवून देण्यासाठी प्रयत्नशील राहू या. धन्यवाद!";
+
+const documents = [
+  { title: 'नोंदणी प्रमाणपत्र', subtitle: 'संस्था नोंदणी प्रमाणपत्र', src: '/nondani_certificate.png' },
+  { title: 'दर्पण पोस्टर', subtitle: 'नीती आयोग - दर्पण नोंदणी', src: '/darpan.png' },
+];
 
 const committeeMembers = [
   { firstName: 'राजेश', role: 'अध्यक्ष', name: 'राजेश स. दळवी', place: 'मंडणगड - घराडी', photo: photoRajeshDalavi },
@@ -51,6 +56,20 @@ export const AboutPage: React.FC = () => {
   const [aboutImage, setAboutImage] = useState<GalleryImage | null>(null);
   const [showFullAbout, setShowFullAbout] = useState(false);
   const [showAllMembers, setShowAllMembers] = useState(false);
+  const [viewDoc, setViewDoc] = useState<{ title: string; src: string } | null>(null);
+
+  // Close viewer with Esc key and lock page scroll while open
+  useEffect(() => {
+    if (!viewDoc) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setViewDoc(null); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [viewDoc]);
 
   const [confirmState, setConfirmState] = useState<ConfirmState>({ open: false, message: '', onConfirm: () => { } });
   const closeConfirm = () => setConfirmState(prev => ({ ...prev, open: false }));
@@ -158,7 +177,7 @@ export const AboutPage: React.FC = () => {
             />
           </div>
 
-        </div>
+            </div>
       </section>
 
       <section className="w-full px-4 	max-w-5xl mx-auto section-gap-top pb-8">
@@ -205,7 +224,76 @@ export const AboutPage: React.FC = () => {
         </button>
       </section>
 
+      {/* Documents Section */}
+      <section className="w-full px-4 max-w-5xl mx-auto section-gap-top pb-10">
+        <h2
+          className="text-center text-xl md:text-2xl font-extrabold text-[#d9531e] mb-6"
+          style={{ fontFamily: "'Baloo 2', sans-serif" }}
+        >
+          संस्थेची कागदपत्रे
+        </h2>
+
+        <div className="grid grid-cols-2 gap-3 md:gap-5 max-w-2xl mx-auto">
+          {documents.map((doc) => (
+            <div
+              key={doc.src}
+              className="bg-white rounded-2xl border border-amber-200/60 shadow-soft p-3 flex flex-col"
+            >
+                           <div className="w-full aspect-square overflow-hidden rounded-xl bg-amber-50 border border-amber-100">
+                <img
+                  src={doc.src}
+                  alt={doc.title}
+                  className="w-full h-full object-cover object-top"
+                />
+              </div>
+
+              <div className="mt-3 text-center">
+                <p className="text-[#d9531e] font-bold text-base" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                  {doc.title}
+                </p>
+                <p className="text-charcoal/60 text-xs mt-0.5">{doc.subtitle}</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewDoc({ title: doc.title, src: doc.src })}
+                className="mt-3 w-full py-2.5 rounded-full border border-[#d9531e]/40 text-[#d9531e] font-bold text-sm bg-white/70 hover:bg-white transition-colors flex items-center justify-center gap-2"
+                style={{ fontFamily: "'Baloo 2', sans-serif" }}
+              >
+                <Eye size={16} />
+                पहा
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <ConfirmModal state={confirmState} onClose={closeConfirm} />
+
+      {/* Full-screen image viewer */}
+      {viewDoc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setViewDoc(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            type="button"
+            onClick={() => setViewDoc(null)}
+            className="absolute top-4 right-4 p-2.5 bg-white/90 hover:bg-white text-black rounded-full shadow-lg z-10"
+            aria-label="बंद करा"
+          >
+            <X size={22} />
+          </button>
+          <img
+            src={viewDoc.src}
+            alt={viewDoc.title}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-full object-contain rounded-lg"
+          />
+        </div>
+      )}
     </div>
   );
 };
