@@ -10,7 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
 import { buildUpiLink } from '../../utils/upi';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown from '../../components/DatePickerDropdown';
+import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
 
 const DRAFT_KEY = "marriage_reg_draft";
 
@@ -915,7 +915,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पूर्ण नाव:</span> <span className="font-bold text-charcoal">{formData.fullName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / वय:</span> <span className="font-bold text-charcoal">{formData.birthDate || '-'} {formData.birthDate ? `(${calculateAge(formData.birthDate)} वर्षे)` : ''}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / वय:</span> <span className="font-bold text-charcoal">{formatBirthDate(formData.birthDate) || '-'} {formData.birthDate ? `(${calculateAge(formData.birthDate)} वर्षे)` : ''}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उंची & रक्तगट:</span> <span className="font-bold text-charcoal">{formData.height || '-'} / {selectedBloodLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">धर्म व जात:</span> <span className="font-bold text-charcoal">{formData.religion ? `${formData.religion} - ${formData.caste || ''}` : '-'}</span></div>
@@ -1702,7 +1702,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                         <div><span className="text-charcoal/60 font-medium block">नोंदणी प्रकार:</span> <span className="font-bold text-saffron">{profileType === 'bride' ? 'वधू (Bride)' : 'वर (Groom)'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">पूर्ण नाव:</span> <span className="font-bold text-charcoal">{formData.fullName || '-'}</span></div>
-                        <div><span className="text-charcoal/60 font-medium block">जन्म तारीख:</span> <span className="font-bold text-charcoal">{formData.birthDate || '-'}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">जन्म तारीख:</span> <span className="font-bold text-charcoal">{formatBirthDate(formData.birthDate) || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">उंची:</span> <span className="font-bold text-charcoal">{formData.height || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">रक्तगट:</span> <span className="font-bold text-charcoal">{selectedBloodLabel || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
@@ -1927,7 +1927,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पूर्ण नाव:</span> <span className="font-bold text-charcoal">{formData.fullName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / वय:</span> <span className="font-bold text-charcoal">{formData.birthDate || '-'} {formData.birthDate ? `(${calculateAge(formData.birthDate)} वर्षे)` : ''}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / वय:</span> <span className="font-bold text-charcoal">{formatBirthDate(formData.birthDate) || '-'} {formData.birthDate ? `(${calculateAge(formData.birthDate)} वर्षे)` : ''}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उंची & रक्तगट:</span> <span className="font-bold text-charcoal">{formData.height || '-'} / {selectedBloodLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">धर्म व जात:</span> <span className="font-bold text-charcoal">{formData.religion ? `${formData.religion} - ${formData.caste || ''}` : '-'}</span></div>

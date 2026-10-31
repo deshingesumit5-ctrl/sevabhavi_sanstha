@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface DatePickerDropdownProps {
@@ -25,6 +25,13 @@ const MARATHI_MONTHS = [
   { value: '12', label: 'डिसेंबर' },
 ];
 
+export const formatBirthDate = (iso: string): string => {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  const month = MARATHI_MONTHS.find((x) => x.value === m)?.label;
+  return y && m && d && month ? `${d} ${month} ${y}` : iso;
+};
+
 export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
   name = 'birthDate',
   value,
@@ -33,16 +40,32 @@ export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
   disabled = false,
   className = '',
 }) => {
-  // Parse incoming YYYY-MM-DD
-  const [selectedYear, selectedMonth, selectedDay] = useMemo(() => {
-    if (!value || typeof value !== 'string') return ['', '', ''];
-    const parts = value.split('-');
-    if (parts.length === 3) {
-      return [parts[0] || '', parts[1] || '', parts[2] || ''];
-    }
+  const parseValue = (v: string): [string, string, string] => {
+    if (!v || typeof v !== 'string') return ['', '', ''];
+    const parts = v.split('-');
+    if (parts.length === 3) return [parts[0] || '', parts[1] || '', parts[2] || ''];
     return ['', '', ''];
-  }, [value]);
+  };
 
+  // Local state keeps partial selections (e.g. only day chosen) alive
+  const [selectedYear, setSelectedYear] = useState<string>(() => parseValue(value)[0]);
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => parseValue(value)[1]);
+  const [selectedDay, setSelectedDay] = useState<string>(() => parseValue(value)[2]);
+
+  // Sync from parent only when it holds a full date (draft load) or is cleared after a full date (form reset)
+  useEffect(() => {
+    if (value) {
+      const [y, m, d] = parseValue(value);
+      setSelectedYear(y);
+      setSelectedMonth(m);
+      setSelectedDay(d);
+    } else if (selectedYear && selectedMonth && selectedDay) {
+      setSelectedYear('');
+      setSelectedMonth('');
+      setSelectedDay('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
   // Compute number of days in the selected month & year (accounting for leap years)
   const daysInMonth = useMemo(() => {
     if (!selectedMonth) return 31;
@@ -92,6 +115,11 @@ export const DatePickerDropdown: React.FC<DatePickerDropdownProps> = ({
         finalDay = '';
       }
     }
+
+    // Remember the partial selection locally
+    setSelectedYear(newYear);
+    setSelectedMonth(newMonth);
+    setSelectedDay(finalDay);
 
     // Only emit ISO string if all 3 parts are present
     const isoString = newYear && newMonth && finalDay ? `${newYear}-${newMonth}-${finalDay}` : '';

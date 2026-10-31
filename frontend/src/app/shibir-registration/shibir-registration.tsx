@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import StepIndicator from '../../components/StepIndicator';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown from '../../components/DatePickerDropdown';
+import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, Loader2, CreditCard,
   Calendar, MapPin, User, Printer, ShieldCheck, Pencil, Trash2,

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import StepIndicator from '../../components/StepIndicator';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown from '../../components/DatePickerDropdown';
+import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Crown, RefreshCw, QrCode, Upload, Loader2, Plus, Pencil, Trash2, Lock, CreditCard, X, Smartphone, Calendar, Download, Eye, Printer, RotateCcw } from 'lucide-react';
 import { api, BASE_URL, type State, type District, type Taluka, type Area, type Gender, type MaritalStatus, type BloodGroup, type PaymentSettingResponse } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
