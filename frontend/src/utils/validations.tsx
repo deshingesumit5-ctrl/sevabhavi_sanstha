@@ -143,6 +143,8 @@ export interface MarriageFormErrors {
   maritalStatus?: string;
   religion?: string;
   caste?: string;
+  gotra?: string;
+  manglik?: string;
   stateId?: string;
   districtId?: string;
   city?: string;
@@ -153,6 +155,7 @@ export interface MarriageFormErrors {
   expectations?: string;
   educationLevel?: string;
   degreeName?: string;
+  schoolCollege?: string;
   passingYear?: string;
   occupationType?: string;
   designation?: string;
@@ -163,6 +166,8 @@ export interface MarriageFormErrors {
   fatherDesignation?: string;
   fatherCompanyName?: string;
   motherName?: string;
+  brothers?: string;
+  sisters?: string;
   mainPhotoUploaded?: string;
   declaration?: string;
   screenshot?: string;
@@ -213,6 +218,9 @@ export const validateMarriageForm = (
     }
     if (!formData.caste || !formData.caste.trim()) {
       setFieldError('caste', 'ही माहिती भरणे आवश्यक आहे', 1);
+    }
+    if (!formData.manglik) {
+      setFieldError('manglik', 'ही माहिती भरणे आवश्यक आहे', 1);
     }
     if (!formData.stateId) {
       setFieldError('stateId', 'ही माहिती भरणे आवश्यक आहे', 1);

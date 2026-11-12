@@ -42,6 +42,15 @@ public class ShibirRegistrationController {
         return ResponseEntity.ok(updated);
     }
 
+    @PutMapping("/shibir-registration/{id}/active")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ShibirRegistration> toggleActive(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean active) {
+        ShibirRegistration updated = shibirRegistrationService.toggleActiveStatus(id, active);
+        return ResponseEntity.ok(updated);
+    }
+
     // PDF Download Form endpoint
     @GetMapping({"/shibir-registration/form/{id}/pdf", "/shibir-registration/{id}/pdf"})
     public ResponseEntity<?> downloadFormPdf(@PathVariable Integer id) {

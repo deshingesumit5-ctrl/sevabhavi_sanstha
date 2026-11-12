@@ -102,6 +102,9 @@ public class ShibirRegistration {
     @Column(name = "approval_status", nullable = false, length = 20)
     private String approvalStatus = "PENDING";
 
+        @Column(name = "is_active", nullable = false, columnDefinition = "BIT NOT NULL DEFAULT 1")
+    private Boolean isActive = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }

@@ -71,6 +71,14 @@ public class ShibirRegistrationServiceImpl implements ShibirRegistrationService 
     }
 
     @Override
+    public ShibirRegistration toggleActiveStatus(Integer id, Boolean active) {
+        ShibirRegistration reg = getById(id);
+        boolean newStatus = (active != null) ? active : (reg.getIsActive() == null || !reg.getIsActive());
+        reg.setIsActive(newStatus);
+        return shibirRegistrationRepository.save(reg);
+    }
+
+    @Override
     public List<ShibirMaster> getAllShibirMasters() {
         return shibirMasterRepository.findByIsActiveTrue();
     }

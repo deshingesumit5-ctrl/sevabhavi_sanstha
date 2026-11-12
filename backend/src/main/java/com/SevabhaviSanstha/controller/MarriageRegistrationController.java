@@ -42,6 +42,15 @@ public class MarriageRegistrationController {
         return ResponseEntity.ok(updated);
     }
 
+    @PutMapping("/{id}/active")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MarriageRegistration> toggleActive(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean active) {
+        MarriageRegistration updated = marriageRegistrationService.toggleActiveStatus(id, active);
+        return ResponseEntity.ok(updated);
+    }
+
     @PostMapping(value = "/upload-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadPhoto(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         try {

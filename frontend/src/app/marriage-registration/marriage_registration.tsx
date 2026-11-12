@@ -104,7 +104,7 @@ export const MarriageRegistrationPage: React.FC = () => {
   // Payment State
   const [paymentQrSettings, setPaymentQrSettings] = useState<PaymentSettingResponse | null>(null);
   const [paymentMode, setPaymentMode] = useState<string>(() => localDraft?.paymentMode ?? (isAdmin ? 'Cash' : 'GPay'));
-  const [cashAmountReceived, setCashAmountReceived] = useState<string>(() => localDraft?.cashAmountReceived ?? '500');
+  const [cashAmountReceived, setCashAmountReceived] = useState<string>(() => localDraft?.cashAmountReceived ?? String(localDraft?.packageAmount ?? 500));
   const [upiTxnId] = useState<string>(() => localDraft?.upiTxnId ?? '');
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(() => localDraft?.screenshotPreview ?? null);
@@ -919,7 +919,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उंची & रक्तगट:</span> <span className="font-bold text-charcoal">{formData.height || '-'} / {selectedBloodLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">धर्म व जात:</span> <span className="font-bold text-charcoal">{formData.religion ? `${formData.religion} - ${formData.caste || ''}` : '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोत्र & मंगळ:</span> <span className="font-bold text-charcoal">{formData.gotra || '-'} / {formData.manglik === 'yes' ? 'मंगळ आहे' : formData.manglik === 'no' ? 'मंगळ नाही' : 'माहित नाही'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोत्र & मंगळ दोष:</span> <span className="font-bold text-charcoal">{formData.gotra || '-'} / {formData.manglik === 'yes' ? 'होय' : formData.manglik === 'no' ? 'नाही' : '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">संपर्क मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पालकांचा मोबाईल:</span> <span className="font-bold text-charcoal">{formData.parentMobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
@@ -940,8 +940,8 @@ export const MarriageRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">शिक्षण पातळी:</span> <span className="font-bold text-charcoal">{getEducationLabel(formData.educationLevel)}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">महाविद्यालय / कॉलेज:</span> <span className="font-bold text-charcoal">{formData.schoolCollege || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पदवी नाव:</span> <span className="font-bold text-charcoal">{formData.degreeName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">शाळा / कॉलेज:</span> <span className="font-bold text-charcoal">{formData.schoolCollege || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उत्तीर्ण वर्ष:</span> <span className="font-bold text-charcoal">{formData.passingYear || '-'}</span></div>
                   </div>
                 </div>
@@ -969,7 +969,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वडिलांचे नाव:</span> <span className="font-bold text-charcoal">{formData.fatherName || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2"><span className="text-charcoal/60 block text-[11px]">वडिलांचा व्यवसाय व पद:</span> <span className="font-bold text-charcoal">{getFatherOccupationLabel(formData.fatherOccupation)}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">आईचे नाव:</span> <span className="font-bold text-charcoal">{formData.motherName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भावंडे:</span> <span className="font-bold text-charcoal">{formData.brothers || '0'} भाऊ, {formData.sisters || '0'} बहीण</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भावंडे (संख्या):</span> <span className="font-bold text-charcoal">{formData.brothers ?? 0} भाऊ, {formData.sisters ?? 0} बहीण</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">कौटुंबिक पार्श्वभूमी:</span> <span className="font-bold text-charcoal">{formData.familyBackground || '-'}</span></div>
                   </div>
                 </div>
@@ -1152,6 +1152,33 @@ export const MarriageRegistrationPage: React.FC = () => {
                     </div>
 
                     <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">गोत्र</label>
+                      <input
+                        type="text"
+                        name="gotra"
+                        value={formData.gotra}
+                        onChange={handleInputChange}
+                        placeholder="आपले गोत्र लिहा"
+                        className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">मंगळ दोष <span className="text-red-500">*</span></label>
+                      <select
+                        name="manglik"
+                        value={formData.manglik}
+                        onChange={handleInputChange}
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.manglik ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                      >
+                        <option value="">-- निवडा --</option>
+                        <option value="yes">होय</option>
+                        <option value="no">नाही</option>
+                      </select>
+                      {errors.manglik && <p className="text-red-500 text-xs mt-1">{errors.manglik}</p>}
+                    </div>
+
+                    <div>
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">मोबाईल नं. <span className="text-red-500">*</span></label>
                       <input type="tel" name="mobile" maxLength={10} value={formData.mobile} onChange={handleInputChange} placeholder="१० अंकी नंबर" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.mobile ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
                       {errors.mobile && <p className="text-red-500 text-xs mt-1">{errors.mobile}</p>}
@@ -1251,6 +1278,18 @@ export const MarriageRegistrationPage: React.FC = () => {
                         <option value="other">इतर (Other)</option>
                       </select>
                       {errors.educationLevel && <p className="text-red-500 text-xs mt-1">{errors.educationLevel}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">महाविद्यालय / कॉलेजचे नाव</label>
+                      <input
+                        type="text"
+                        name="schoolCollege"
+                        value={formData.schoolCollege}
+                        onChange={handleInputChange}
+                        placeholder="आपल्या महाविद्यालयाचे नाव लिहा"
+                        className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                      />
                     </div>
 
                     <div>
@@ -1377,6 +1416,34 @@ export const MarriageRegistrationPage: React.FC = () => {
                       <input type="text" name="motherName" value={formData.motherName} onChange={handleInputChange} placeholder="आईचे पूर्ण नाव" className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.motherName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`} />
                       {errors.motherName && <p className="text-red-500 text-xs mt-1">{errors.motherName}</p>}
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">भाऊ (संख्या)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="brothers"
+                        value={formData.brothers}
+                        onChange={handleInputChange}
+                        placeholder="उदा. १"
+                        className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">बहीण (संख्या)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        name="sisters"
+                        value={formData.sisters}
+                        onChange={handleInputChange}
+                        placeholder="उदा. २"
+                        className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -1426,6 +1493,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                             onClick={() => {
                               setPackageType(pkg.id as any);
                               setPackageAmount(pkg.amount);
+                                setCashAmountReceived(String(pkg.amount));
                             }}
                             className={`relative flex flex-col justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${isSelected
                               ? 'border-saffron bg-saffron/5 shadow-md scale-[1.02]'
@@ -1640,8 +1708,8 @@ export const MarriageRegistrationPage: React.FC = () => {
                             checked={paymentMode === 'Cash'}
                             onChange={() => {
                               setPaymentMode('Cash');
-                              if (!cashAmountReceived) {
-                                setCashAmountReceived('500');
+                                                         if (!cashAmountReceived) {
+                                setCashAmountReceived(String(packageAmount));
                               }
                             }}
                             className="w-4 h-4 text-saffron focus:ring-saffron"
@@ -1661,7 +1729,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                               type="number"
                               min="1"
                               placeholder="रक्कम प्रविष्ट करा"
-                              value={cashAmountReceived || '500'}
+                             value={cashAmountReceived}
                               onChange={(e) => setCashAmountReceived(e.target.value)}
                               className="w-full max-w-xs px-3.5 py-2 border border-gray-300 rounded-xl text-sm font-bold text-emerald-700 bg-white focus:outline-none focus:ring-2 focus:ring-saffron"
                             />
@@ -1707,8 +1775,8 @@ export const MarriageRegistrationPage: React.FC = () => {
                         <div><span className="text-charcoal/60 font-medium block">रक्तगट:</span> <span className="font-bold text-charcoal">{selectedBloodLabel || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">धर्म व जात:</span> <span className="font-bold text-charcoal">{formData.religion ? `${formData.religion} - ${formData.caste}` : '-'}</span></div>
-                        {formData.gotra && <div><span className="text-charcoal/60 font-medium block">गोत्र:</span> <span className="font-bold text-charcoal">{formData.gotra}</span></div>}
-                        <div><span className="text-charcoal/60 font-medium block">मंगळ:</span> <span className="font-bold text-charcoal">{formData.manglik === 'yes' ? 'होय' : formData.manglik === 'no' ? 'नाही' : 'माहित नाही'}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">गोत्र:</span> <span className="font-bold text-charcoal">{formData.gotra || '-'}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">मंगळ दोष:</span> <span className="font-bold text-charcoal">{formData.manglik === 'yes' ? 'होय' : formData.manglik === 'no' ? 'नाही' : '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">राज्य:</span> <span className="font-bold text-charcoal">{selectedState?.nameMr || selectedState?.nameEn || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">जिल्हा:</span> <span className="font-bold text-charcoal">{selectedDistrict?.nameMr || selectedDistrict?.nameEn || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">शहर / गाव:</span> <span className="font-bold text-charcoal">{formData.city || '-'}</span></div>
@@ -1725,8 +1793,9 @@ export const MarriageRegistrationPage: React.FC = () => {
                       <h4 className="text-xs font-bold text-saffron-dark uppercase tracking-wider border-b border-saffron/10 pb-1">
                         २. शैक्षणिक माहिती (Educational Details)
                       </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div><span className="text-charcoal/60 font-medium block">शिक्षण पातळी:</span> <span className="font-bold text-charcoal">{formData.educationLevel || '-'}</span></div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                        <div><span className="text-charcoal/60 font-medium block">शिक्षण पातळी:</span> <span className="font-bold text-charcoal">{getEducationLabel(formData.educationLevel) || formData.educationLevel || '-'}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">महाविद्यालय / कॉलेजचे नाव:</span> <span className="font-bold text-charcoal">{formData.schoolCollege || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">पदवी नाव:</span> <span className="font-bold text-charcoal">{formData.degreeName || '-'}</span></div>
                         <div><span className="text-charcoal/60 font-medium block">उत्तीर्ण वर्ष:</span> <span className="font-bold text-charcoal">{formData.passingYear || '-'}</span></div>
                       </div>
@@ -1775,6 +1844,8 @@ export const MarriageRegistrationPage: React.FC = () => {
                         {formData.fatherDesignation && <div><span className="text-charcoal/60 font-medium block">वडिलांचे पद:</span> <span className="font-bold text-charcoal">{formData.fatherDesignation}</span></div>}
                         {formData.fatherCompanyName && <div><span className="text-charcoal/60 font-medium block">कंपनी / व्यवसाय नाव:</span> <span className="font-bold text-charcoal">{formData.fatherCompanyName}</span></div>}
                         <div><span className="text-charcoal/60 font-medium block">आईचे नाव:</span> <span className="font-bold text-charcoal">{formData.motherName || '-'}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">भाऊ (संख्या):</span> <span className="font-bold text-charcoal">{formData.brothers ?? 0}</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">बहीण (संख्या):</span> <span className="font-bold text-charcoal">{formData.sisters ?? 0}</span></div>
                       </div>
                     </div>
 
@@ -1931,7 +2002,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उंची & रक्तगट:</span> <span className="font-bold text-charcoal">{formData.height || '-'} / {selectedBloodLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वैवाहिक स्थिती:</span> <span className="font-bold text-charcoal">{selectedMaritalLabel || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">धर्म व जात:</span> <span className="font-bold text-charcoal">{formData.religion ? `${formData.religion} - ${formData.caste || ''}` : '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोत्र & मंगळ:</span> <span className="font-bold text-charcoal">{formData.gotra || '-'} / {formData.manglik === 'yes' ? 'मंगळ आहे' : formData.manglik === 'no' ? 'मंगळ नाही' : 'माहित नाही'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोत्र & मंगळ दोष:</span> <span className="font-bold text-charcoal">{formData.gotra || '-'} / {formData.manglik === 'yes' ? 'होय' : formData.manglik === 'no' ? 'नाही' : '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">संपर्क मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पालकांचा मोबाईल:</span> <span className="font-bold text-charcoal">{formData.parentMobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
@@ -1952,8 +2023,8 @@ export const MarriageRegistrationPage: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">शिक्षण पातळी:</span> <span className="font-bold text-charcoal">{getEducationLabel(formData.educationLevel)}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">महाविद्यालय / कॉलेज:</span> <span className="font-bold text-charcoal">{formData.schoolCollege || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पदवी नाव:</span> <span className="font-bold text-charcoal">{formData.degreeName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">शाळा / कॉलेज:</span> <span className="font-bold text-charcoal">{formData.schoolCollege || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">उत्तीर्ण वर्ष:</span> <span className="font-bold text-charcoal">{formData.passingYear || '-'}</span></div>
                   </div>
                 </div>
@@ -1980,7 +2051,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">वडिलांचे नाव:</span> <span className="font-bold text-charcoal">{formData.fatherName || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2"><span className="text-charcoal/60 block text-[11px]">वडिलांचा व्यवसाय व पद:</span> <span className="font-bold text-charcoal">{getFatherOccupationLabel(formData.fatherOccupation)}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">आईचे नाव:</span> <span className="font-bold text-charcoal">{formData.motherName || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भावंडे:</span> <span className="font-bold text-charcoal">{formData.brothers || '0'} भाऊ, {formData.sisters || '0'} बहीण</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भावंडे (संख्या):</span> <span className="font-bold text-charcoal">{formData.brothers ?? 0} भाऊ, {formData.sisters ?? 0} बहीण</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">कौटुंबिक पार्श्वभूमी:</span> <span className="font-bold text-charcoal">{formData.familyBackground || '-'}</span></div>
                   </div>
                 </div>

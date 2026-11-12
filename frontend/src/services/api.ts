@@ -127,6 +127,7 @@ export interface MemberRegistrationData {
   message: string | null;
   declaration: boolean;
   approvalStatus: string;
+  isActive?: boolean;
   createdAt: string;
 }
 
@@ -168,6 +169,7 @@ export interface MarriageRegistrationData {
   fullPhotoUploaded: boolean;
   declaration: boolean;
   approvalStatus: string;
+  isActive?: boolean;
   passwordHash?: string;
   packageType?: string;
   packageAmount?: number;
@@ -342,6 +344,7 @@ export interface ShibirRegistrationData {
   screenshotUrl?: string;
   paymentStatus?: string;
   approvalStatus: string;
+  isActive?: boolean;
   createdAt: string;
 }
 
@@ -703,6 +706,38 @@ export const api = {
     return updated;
   },
 
+  toggleMemberActive: async (id: number, active?: boolean): Promise<MemberRegistrationData> => {
+    let url = `${BASE_URL}/member-registration/${id}/active`;
+    if (active !== undefined) url += `?active=${active}`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { ...getAdminHeaders() },
+    });
+    if (!res.ok) throw new Error('Failed to update member active status');
+    const updated = await res.json();
+    const cached = getCachedData<MemberRegistrationData[]>('all_members');
+    if (cached) {
+      setCachedData('all_members', cached.map(m => m.id === id ? { ...m, isActive: updated.isActive } : m));
+    }
+    return updated;
+  },
+
+  toggleMarriageActive: async (id: number, active?: boolean): Promise<MarriageRegistrationData> => {
+    let url = `${BASE_URL}/marriage-registration/${id}/active`;
+    if (active !== undefined) url += `?active=${active}`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { ...getAdminHeaders() },
+    });
+    if (!res.ok) throw new Error('Failed to update marriage active status');
+    const updated = await res.json();
+    const cached = getCachedData<MarriageRegistrationData[]>('all_marriages');
+    if (cached) {
+      setCachedData('all_marriages', cached.map(m => m.id === id ? { ...m, isActive: updated.isActive } : m));
+    }
+    return updated;
+  },
+
   getReligions: async (): Promise<Religion[]> => {
     return cachedFetch('religions', async () => {
       const res = await fetch(`${BASE_URL}/religions`);
@@ -1031,6 +1066,22 @@ export const api = {
     const cached = getCachedData<ShibirRegistrationData[]>('all_shibirs');
     if (cached) {
       setCachedData('all_shibirs', cached.map(s => s.id === id ? { ...s, approvalStatus: status } : s));
+    }
+    return updated;
+  },
+
+  toggleShibirActive: async (id: number, active?: boolean): Promise<ShibirRegistrationData> => {
+    let url = `${BASE_URL}/shibir-registration/${id}/active`;
+    if (active !== undefined) url += `?active=${active}`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { ...getAdminHeaders() },
+    });
+    if (!res.ok) throw new Error('Failed to update shibir active status');
+    const updated = await res.json();
+    const cached = getCachedData<ShibirRegistrationData[]>('all_shibirs');
+    if (cached) {
+      setCachedData('all_shibirs', cached.map(s => s.id === id ? { ...s, isActive: updated.isActive } : s));
     }
     return updated;
   },

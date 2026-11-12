@@ -136,6 +136,15 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     }
 
     @Override
+    @Transactional
+    public MarriageRegistration toggleActiveStatus(Integer id, Boolean active) {
+        MarriageRegistration reg = getById(id);
+        boolean newStatus = (active != null) ? active : (reg.getIsActive() == null || !reg.getIsActive());
+        reg.setIsActive(newStatus);
+        return marriageRegistrationRepository.save(reg);
+    }
+
+    @Override
     public MarriageRegistration getById(Integer id) {
         return marriageRegistrationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("विवाह नोंदणी सापडली नाही (ID: " + id + ")"));
@@ -146,8 +155,9 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
         Specification<MarriageRegistration> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // Rule: ONLY show APPROVED profiles
+            // Rule: ONLY show APPROVED profiles and ACTIVE profiles
             predicates.add(cb.equal(root.get("approvalStatus"), "APPROVED"));
+            predicates.add(cb.or(cb.isNull(root.get("isActive")), cb.isTrue(root.get("isActive"))));
 
             // Exclude current logged in matrimony user's own profile
             if (currentUserId != null) {
@@ -239,7 +249,7 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     @Override
     public MatrimonyPublicProfileDTO getPublicProfileById(Integer id, Integer currentUserId) {
         MarriageRegistration reg = getById(id);
-        if (!"APPROVED".equalsIgnoreCase(reg.getApprovalStatus())) {
+        if (!"APPROVED".equalsIgnoreCase(reg.getApprovalStatus()) || Boolean.FALSE.equals(reg.getIsActive())) {
             throw new RuntimeException("प्रोफाइल सापडली नाही किंवा अद्याप मंजूर झालेली नाही.");
         }
         boolean isFav = (currentUserId != null) && matrimonyFavoriteRepository.existsByUserIdAndFavoriteProfileId(currentUserId, id);
@@ -249,7 +259,7 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     @Override
     public MatrimonyFullProfileDTO getFullProfileById(Integer id, Integer currentUserId, boolean isAdmin) {
         MarriageRegistration target = getById(id);
-        if (!"APPROVED".equalsIgnoreCase(target.getApprovalStatus()) && !isAdmin) {
+        if ((!"APPROVED".equalsIgnoreCase(target.getApprovalStatus()) || Boolean.FALSE.equals(target.getIsActive())) && !isAdmin) {
             throw new RuntimeException("प्रोफाइल सापडली नाही.");
         }
 

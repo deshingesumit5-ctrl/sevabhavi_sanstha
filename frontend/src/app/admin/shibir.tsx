@@ -19,6 +19,7 @@ export const AdminShibirPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterShibir, setFilterShibir] = useState('');
+  const [filterActive, setFilterActive] = useState('');
 
   // New Shibir Master Form State
   const [showAddMasterModal, setShowAddMasterModal] = useState(false);
@@ -128,6 +129,23 @@ export const AdminShibirPage: React.FC = () => {
     }
   };
 
+  const handleToggleActive = async (id: number, currentActive: boolean) => {
+    try {
+      const nextActive = !currentActive;
+      await api.toggleShibirActive(id, nextActive);
+      setRegistrations(prev => prev.map(r => r.id === id ? { ...r, isActive: nextActive } : r));
+    } catch (err: any) {
+      alert('स्थिती अद्ययावत करताना त्रुटी: ' + (err.message || err));
+    }
+  };
+
+  const getActiveBadge = (isActive?: boolean) => {
+    if (isActive === false) {
+      return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">निष्क्रिय</span>;
+    }
+    return <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-800">सक्रिय</span>;
+  };
+
   const filteredRegistrations = registrations.filter(r => {
     const matchSearch = 
       r.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -135,7 +153,12 @@ export const AdminShibirPage: React.FC = () => {
       r.mobile?.includes(searchTerm) ||
       r.cityVillage?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchShibir = filterShibir ? r.shibirName === filterShibir : true;
-    return matchSearch && matchShibir;
+    const matchActive = filterActive === 'active'
+      ? (r.isActive !== false)
+      : filterActive === 'inactive'
+      ? (r.isActive === false)
+      : true;
+    return matchSearch && matchShibir && matchActive;
   });
 
   return (
@@ -206,7 +229,7 @@ export const AdminShibirPage: React.FC = () => {
       {/* Filters Section - Responsive Grid */}
       {showFilters && (
         <div className="bg-white p-4 sm:p-5 rounded-xl border border-amber-200/60 shadow-soft">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-center">
             <div>
               <input
                 type="text"
@@ -226,6 +249,17 @@ export const AdminShibirPage: React.FC = () => {
                 {shibirMasters.map(m => (
                   <option key={m.id} value={m.shibirName}>{m.shibirName}</option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <select
+                value={filterActive}
+                onChange={(e) => setFilterActive(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-amber-50/20 border border-amber-200/80 rounded-xl text-sm focus:ring-2 focus:ring-saffron/20 focus:border-saffron outline-none font-normal text-charcoal cursor-pointer transition-all"
+              >
+                <option value="">सर्व स्थिती (सक्रिय/निष्क्रिय)</option>
+                <option value="active">सक्रिय</option>
+                <option value="inactive">निष्क्रिय</option>
               </select>
             </div>
             <button className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-saffron to-amber-600 hover:from-amber-600 hover:to-saffron text-white font-bold rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm whitespace-nowrap">
@@ -260,7 +294,10 @@ export const AdminShibirPage: React.FC = () => {
                     </span>
                     <p className="text-base font-normal text-charcoal truncate" style={{ fontFamily: "'Baloo 2', sans-serif" }}>{r.fullName}</p>
                   </div>
-                  {getStatusBadge(r.approvalStatus)}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {getStatusBadge(r.approvalStatus)}
+                    {getActiveBadge(r.isActive)}
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs">
@@ -277,6 +314,16 @@ export const AdminShibirPage: React.FC = () => {
                     <Eye size={15} />
                     अर्ज बघा
                     {expandedId === r.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  <button
+                    onClick={() => handleToggleActive(r.id, r.isActive !== false)}
+                    className={`px-3 py-2 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1 transition-colors ${
+                      r.isActive === false
+                        ? 'bg-emerald-600 active:bg-emerald-700 text-white'
+                        : 'bg-gray-600 active:bg-gray-700 text-white'
+                    }`}
+                  >
+                    {r.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
                   </button>
                   {r.approvalStatus === 'PENDING' && (
                     <>
@@ -407,7 +454,12 @@ export const AdminShibirPage: React.FC = () => {
                           {r.paymentMode || 'Online'} {r.amountPaid ? `(₹${r.amountPaid})` : ''}
                         </span>
                       </td>
-                      <td className="p-3.5">{getStatusBadge(r.approvalStatus)}</td>
+                      <td className="p-3.5">
+                        <div className="flex flex-col gap-1 items-start">
+                          {getStatusBadge(r.approvalStatus)}
+                          {getActiveBadge(r.isActive)}
+                        </div>
+                      </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5">
                           <button
@@ -418,6 +470,17 @@ export const AdminShibirPage: React.FC = () => {
                             <Eye size={12} />
                             अर्ज बघा
                             {expandedId === r.id ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                          </button>
+                          <button
+                            onClick={() => handleToggleActive(r.id, r.isActive !== false)}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shadow-sm ${
+                              r.isActive === false
+                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                : 'bg-gray-600 hover:bg-gray-700 text-white'
+                            }`}
+                            title={r.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
+                          >
+                            {r.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
                           </button>
                           {r.approvalStatus === 'PENDING' && (
                             <>

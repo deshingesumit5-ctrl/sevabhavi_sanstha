@@ -7,6 +7,7 @@ public interface MemberRegistrationService {
     MemberRegistration registerMember(MemberRegistration registration);
     List<MemberRegistration> getAllRegistrations();
     MemberRegistration updateApprovalStatus(Integer id, String status);
+    MemberRegistration toggleActiveStatus(Integer id, Boolean active);
     MemberRegistration getById(Integer id);
     byte[] generateMemberFormPdf(Integer id);
 }

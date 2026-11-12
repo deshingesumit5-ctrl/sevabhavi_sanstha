@@ -41,6 +41,15 @@ public class MemberRegistrationController {
         return ResponseEntity.ok(updated);
     }
 
+    @PutMapping("/{id}/active")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<MemberRegistration> toggleActive(
+            @PathVariable Integer id,
+            @RequestParam(required = false) Boolean active) {
+        MemberRegistration updated = memberRegistrationService.toggleActiveStatus(id, active);
+        return ResponseEntity.ok(updated);
+    }
+
     // PDF Download Form endpoint
     @GetMapping({"/form/{id}/pdf", "/{id}/pdf"})
     public ResponseEntity<?> downloadFormPdf(@PathVariable Integer id) {

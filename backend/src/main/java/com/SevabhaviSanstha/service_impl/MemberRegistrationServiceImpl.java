@@ -41,6 +41,14 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     }
 
     @Override
+    public MemberRegistration toggleActiveStatus(Integer id, Boolean active) {
+        MemberRegistration reg = getById(id);
+        boolean newStatus = (active != null) ? active : (reg.getIsActive() == null || !reg.getIsActive());
+        reg.setIsActive(newStatus);
+        return memberRegistrationRepository.save(reg);
+    }
+
+    @Override
     public MemberRegistration getById(Integer id) {
         return memberRegistrationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("सभासद नोंदणी सापडली नाही (ID: " + id + ")"));

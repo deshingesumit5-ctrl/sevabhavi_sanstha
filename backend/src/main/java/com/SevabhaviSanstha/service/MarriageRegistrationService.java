@@ -14,6 +14,7 @@ public interface MarriageRegistrationService {
     List<MarriageRegistration> getAllRegistrations();
     MarriageRegistration updateApprovalStatus(Integer id, String status);
     MarriageRegistration updateApprovalStatusWithReason(Integer id, String status, String reason);
+    MarriageRegistration toggleActiveStatus(Integer id, Boolean active);
     MarriageRegistration getById(Integer id);
     byte[] generateFormPdf(Integer id);
 

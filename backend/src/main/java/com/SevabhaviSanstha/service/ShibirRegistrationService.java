@@ -9,6 +9,7 @@ public interface ShibirRegistrationService {
     ShibirRegistration registerShibir(ShibirRegistration registration);
     List<ShibirRegistration> getAllRegistrations();
     ShibirRegistration updateApprovalStatus(Integer id, String status);
+    ShibirRegistration toggleActiveStatus(Integer id, Boolean active);
 
     List<ShibirMaster> getAllShibirMasters();
     ShibirMaster createShibirMaster(ShibirMaster master);
