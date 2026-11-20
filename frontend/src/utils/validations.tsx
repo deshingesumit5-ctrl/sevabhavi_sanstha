@@ -14,6 +14,13 @@ export interface MemberFormErrors {
   districtId?: string;
   talukaId?: string;
   pincode?: string;
+  permanentDistrict?: string;
+  permanentTalukaId?: string;
+  permanentVillage?: string;
+  permanentPincode?: string;
+  currentDistrict?: string;
+  currentSuburb?: string;
+  currentPincode?: string;
   declaration?: string;
   screenshot?: string;
 }
@@ -97,25 +104,31 @@ export const validateMemberForm = (
 
   // Step 2: पत्ता माहिती
   if (!step || step === 2) {
-    if (!formData.currentAddress || !formData.currentAddress.trim()) {
-      setFieldError('currentAddress', 'ही माहिती भरणे आवश्यक आहे', 2);
-    }
     if (!formData.permanentAddress || !formData.permanentAddress.trim()) {
       setFieldError('permanentAddress', 'ही माहिती भरणे आवश्यक आहे', 2);
     }
-    if (!formData.stateId) {
-      setFieldError('stateId', 'ही माहिती भरणे आवश्यक आहे', 2);
+    if (!formData.permanentTalukaId) {
+      setFieldError('permanentTalukaId', 'कृपया रत्नागिरी जिल्ह्यातील तालुका निवडा', 2);
     }
-    if (!formData.districtId) {
-      setFieldError('districtId', 'ही माहिती भरणे आवश्यक आहे', 2);
+    if (!formData.permanentVillage || !formData.permanentVillage.trim()) {
+      setFieldError('permanentVillage', 'कृपया गाव / शहर निवडा किंवा प्रविष्ट करा', 2);
     }
-    if (!formData.talukaId) {
-      setFieldError('talukaId', 'ही माहिती भरणे आवश्यक आहे', 2);
+    if (!formData.permanentPincode || !formData.permanentPincode.trim()) {
+      setFieldError('permanentPincode', 'कृपया पिनकोड निवडा किंवा प्रविष्ट करा', 2);
+    } else if (!/^\d{6}$/.test(formData.permanentPincode.trim())) {
+      setFieldError('permanentPincode', 'कृपया वैध ६ अंकी पिनकोड प्रविष्ट करा', 2);
     }
-    if (!formData.pincode) {
-      setFieldError('pincode', 'ही माहिती भरणे आवश्यक आहे', 2);
-    } else if (!/^\d{6}$/.test(formData.pincode)) {
-      setFieldError('pincode', 'कृपया वैध ६ अंकी पिनकोड प्रविष्ट करा', 2);
+
+    if (!formData.currentAddress || !formData.currentAddress.trim()) {
+      setFieldError('currentAddress', 'ही माहिती भरणे आवश्यक आहे', 2);
+    }
+    if (!formData.currentSuburb || !formData.currentSuburb.trim()) {
+      setFieldError('currentSuburb', 'कृपया पुणे उपनगर निवडा', 2);
+    }
+    if (!formData.currentPincode || !formData.currentPincode.trim()) {
+      setFieldError('currentPincode', 'ही माहिती भरणे आवश्यक आहे', 2);
+    } else if (!/^\d{6}$/.test(formData.currentPincode.trim())) {
+      setFieldError('currentPincode', 'कृपया वैध ६ अंकी पिनकोड प्रविष्ट करा', 2);
     }
   }
 
@@ -147,6 +160,7 @@ export interface MarriageFormErrors {
   manglik?: string;
   stateId?: string;
   districtId?: string;
+  talukaId?: string;
   city?: string;
   mobile?: string;
   email?: string;
@@ -228,7 +242,10 @@ export const validateMarriageForm = (
     if (!formData.districtId) {
       setFieldError('districtId', 'ही माहिती भरणे आवश्यक आहे', 1);
     }
-    if (!formData.city) {
+    if (!formData.talukaId && (!formData.talukaName || !String(formData.talukaName).trim())) {
+      setFieldError('talukaId', 'कृपया तालुका निवडा', 1);
+    }
+    if (!formData.city || !String(formData.city).trim()) {
       setFieldError('city', 'ही माहिती भरणे आवश्यक आहे', 1);
     }
     if (!formData.mobile) {
@@ -452,8 +469,10 @@ export const validatePan = (pan: string): boolean => {
 
 export interface DonationFormErrors {
   fullName?: string;
+  birthDate?: string;
   mobile?: string;
   email?: string;
+  panNumber?: string;
   address?: string;
   city?: string;
   stateId?: string;
@@ -491,6 +510,11 @@ export const validateDonationForm = (
     if (!formData.fullName || !formData.fullName.trim()) {
       setFieldError('fullName', 'ही माहिती भरणे आवश्यक आहे', 1);
     }
+    if (!formData.birthDate || !String(formData.birthDate).trim()) {
+      setFieldError('birthDate', 'जन्म तारीख भरणे आवश्यक आहे', 1);
+    } else if (new Date(formData.birthDate) > new Date()) {
+      setFieldError('birthDate', 'जन्म तारीख भविष्यातील असू शकत नाही', 1);
+    }
     if (!formData.mobile) {
       setFieldError('mobile', 'ही माहिती भरणे आवश्यक आहे', 1);
     } else if (!validateMobile(formData.mobile)) {
@@ -498,6 +522,12 @@ export const validateDonationForm = (
     }
     if (formData.email && !validateEmail(formData.email)) {
       setFieldError('email', 'कृपया वैध ईमेल पत्ता प्रविष्ट करा', 1);
+    }
+    if (formData.panNumber && String(formData.panNumber).trim()) {
+      const cleanPan = String(formData.panNumber).trim().toUpperCase();
+      if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(cleanPan)) {
+        setFieldError('panNumber', 'कृपया वैध १० अंकी पॅन क्रमांक प्रविष्ट करा (उदा. ABCDE1234F)', 1);
+      }
     }
     if (!formData.address || !formData.address.trim()) {
       setFieldError('address', 'ही माहिती भरणे आवश्यक आहे', 1);

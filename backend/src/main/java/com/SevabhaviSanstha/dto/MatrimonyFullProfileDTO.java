@@ -27,6 +27,8 @@ public class MatrimonyFullProfileDTO {
     private String gotra;
     private String manglik;
     private String city;
+    private Integer talukaId;
+    private String talukaNameMr;
     private Integer districtId;
     private String districtNameMr;
     private Integer stateId;
@@ -68,6 +70,9 @@ public class MatrimonyFullProfileDTO {
     // Subscription & Favourites
     private Boolean subscriptionActive;
     private LocalDate subscriptionEndDate;
+    private Integer biodataLimit;
+    private Long usedViews;
+    private Long remainingViews;
     private Boolean isFavorite;
     private LocalDateTime createdAt;
 }

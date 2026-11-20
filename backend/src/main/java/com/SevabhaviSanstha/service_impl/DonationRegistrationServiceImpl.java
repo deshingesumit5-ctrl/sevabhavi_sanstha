@@ -79,6 +79,13 @@ public class DonationRegistrationServiceImpl implements DonationRegistrationServ
 
     @Override
     public DonationRegistration saveDraft(DonationRequestDTO dto) {
+        if (dto.getPanNumber() != null && !dto.getPanNumber().isBlank()) {
+            String upperPan = dto.getPanNumber().trim().toUpperCase();
+            if (!upperPan.matches("^[A-Z]{5}[0-9]{4}[A-Z]$")) {
+                throw new IllegalArgumentException("कृपया वैध १० अंकी पॅन कार्ड क्रमांक प्रविष्ट करा (उदा. ABCDE1234F).");
+            }
+        }
+
         DonationRegistration entity;
 
         if (dto.getReceiptNumber() != null && !dto.getReceiptNumber().isBlank()) {
@@ -100,6 +107,8 @@ public class DonationRegistrationServiceImpl implements DonationRegistrationServ
 
     @Override
     public DonationRegistration submitDonation(DonationRequestDTO dto) {
+        validateMandatoryFields(dto);
+
         DonationRegistration entity;
 
         if (dto.getReceiptNumber() != null && !dto.getReceiptNumber().isBlank()) {
@@ -118,6 +127,33 @@ public class DonationRegistrationServiceImpl implements DonationRegistrationServ
         entity.setDraftStep(4);
 
         return donationRegistrationRepository.save(entity);
+    }
+
+    private void validateMandatoryFields(DonationRequestDTO dto) {
+        if (dto.getFullName() == null || dto.getFullName().isBlank()) {
+            throw new IllegalArgumentException("पूर्ण नाव आवश्यक आहे.");
+        }
+        if (dto.getBirthDate() == null) {
+            throw new IllegalArgumentException("जन्म तारीख आवश्यक आहे.");
+        }
+        if (dto.getBirthDate().isAfter(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("जन्म तारीख भविष्यातील असू शकत नाही.");
+        }
+        if (dto.getMobile() == null || !dto.getMobile().trim().matches("^\\d{10}$")) {
+            throw new IllegalArgumentException("कृपया वैध १० अंकी मोबाईल क्रमांक प्रविष्ट करा.");
+        }
+        if (dto.getDistrictId() == null) {
+            throw new IllegalArgumentException("जिल्हा निवडणे आवश्यक आहे.");
+        }
+        if (dto.getCity() == null || dto.getCity().isBlank()) {
+            throw new IllegalArgumentException("ठिकाण / शहर / गाव आवश्यक आहे.");
+        }
+        if (dto.getPanNumber() != null && !dto.getPanNumber().isBlank()) {
+            String upperPan = dto.getPanNumber().trim().toUpperCase();
+            if (!upperPan.matches("^[A-Z]{5}[0-9]{4}[A-Z]$")) {
+                throw new IllegalArgumentException("कृपया वैध १० अंकी पॅन कार्ड क्रमांक प्रविष्ट करा (उदा. ABCDE1234F).");
+            }
+        }
     }
 
     @Override
@@ -278,6 +314,9 @@ public class DonationRegistrationServiceImpl implements DonationRegistrationServ
             if (donation.getEmail() != null && !donation.getEmail().isBlank()) {
                 addDetailRow(detailsTable, "ईमेल:", donation.getEmail(), labelFont, valueFont, false);
             }
+            if (donation.getPanNumber() != null && !donation.getPanNumber().isBlank()) {
+                addDetailRow(detailsTable, "पॅन कार्ड क्र.:", donation.getPanNumber(), labelFont, valueFont, false);
+            }
             if (fullAddr.length() > 0) {
                 addDetailRow(detailsTable, "पत्ता:", fullAddr.toString(), labelFont, valueFont, false);
             }
@@ -403,6 +442,10 @@ public class DonationRegistrationServiceImpl implements DonationRegistrationServ
         if (dto.getAddress() != null) entity.setAddress(dto.getAddress());
         if (dto.getCity() != null) entity.setCity(dto.getCity());
         if (dto.getPincode() != null) entity.setPincode(dto.getPincode());
+        if (dto.getPanNumber() != null) {
+            String trimmedPan = dto.getPanNumber().trim().toUpperCase();
+            entity.setPanNumber(trimmedPan.isEmpty() ? null : trimmedPan);
+        }
 
         if (dto.getStateId() != null) {
             stateRepository.findById(dto.getStateId()).ifPresent(entity::setState);

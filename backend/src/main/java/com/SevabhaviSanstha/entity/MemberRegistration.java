@@ -2,6 +2,7 @@ package com.SevabhaviSanstha.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -67,6 +68,32 @@ public class MemberRegistration {
 
     @Column(name = "pincode", nullable = false, length = 10)
     private String pincode;
+
+    @Nationalized
+    @Column(name = "permanent_district", length = 100, columnDefinition = "NVARCHAR(100)")
+    private String permanentDistrict;
+
+    @Nationalized
+    @Column(name = "permanent_taluka", length = 100, columnDefinition = "NVARCHAR(100)")
+    private String permanentTaluka;
+
+    @Nationalized
+    @Column(name = "permanent_village", length = 200, columnDefinition = "NVARCHAR(200)")
+    private String permanentVillage;
+
+    @Column(name = "permanent_pincode", length = 10)
+    private String permanentPincode;
+
+    @Nationalized
+    @Column(name = "current_district", length = 100, columnDefinition = "NVARCHAR(100)")
+    private String currentDistrict;
+
+    @Nationalized
+    @Column(name = "current_suburb", length = 200, columnDefinition = "NVARCHAR(200)")
+    private String currentSuburb;
+
+    @Column(name = "current_pincode", length = 10)
+    private String currentPincode;
 
     @Column(name = "member_type", nullable = false, length = 20)
     private String memberType;

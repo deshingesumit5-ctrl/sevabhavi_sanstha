@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import StepIndicator from '../../components/StepIndicator';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
+import RegistrationSuccessModal from '../../components/RegistrationSuccessModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +23,8 @@ import {
   RotateCcw,
   FileText,
   X,
+  HeartHandshake,
+  Sparkles,
 } from 'lucide-react';
 import {
   api,
@@ -45,6 +49,7 @@ const BANNER_SECTION_KEY = 'donation_registration_banner';
 
 export const DonationRegistrationPage: React.FC = () => {
   const formContainerRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
   const localDraft = loadDraft<any>(DRAFT_KEY);
   const { isAdmin } = useAuth();
 
@@ -84,6 +89,8 @@ export const DonationRegistrationPage: React.FC = () => {
   const [paymentSuccessMessage, setPaymentSuccessMessage] = useState<string | null>(() => localDraft?.paymentSuccessMessage ?? null);
   const [isSubmittingPayment, setIsSubmittingPayment] = useState<boolean>(false);
   const [registrationComplete, setRegistrationComplete] = useState<boolean>(() => localDraft?.registrationComplete ?? false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
+  const [showCategorySelection, setShowCategorySelection] = useState<boolean>(() => !(localDraft?.registrationComplete));
   const [receiptNumber, setReceiptNumber] = useState<string>(() => localDraft?.receiptNumber ?? '');
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
 
@@ -104,6 +111,7 @@ export const DonationRegistrationPage: React.FC = () => {
       email: '',
       birthDate: '',
       gender: 'पुरुष',
+      panNumber: '',
       address: '',
       city: '',
       stateId: '',
@@ -124,6 +132,32 @@ export const DonationRegistrationPage: React.FC = () => {
       paymentMethod: 'UPI',
     };
   });
+
+  // Reset back to Category Summary when navigated via Sidebar/Footer link
+  useEffect(() => {
+    const state = location.state as { resetCategory?: number } | null;
+    if (state?.resetCategory) {
+      setShowCategorySelection(true);
+      setRegistrationComplete(false);
+      setShowSuccessModal(false);
+      setCurrentStep(1);
+    }
+  }, [location.state]);
+
+  const handleSelectCategory = (purposeId: string) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      donationPurposeId: purposeId,
+      customPurpose: purposeId === 'other' ? prev.customPurpose || '' : '',
+    }));
+    setErrors({});
+    setRegistrationComplete(false);
+    setPaymentSubmitted(false);
+    setPaymentSuccessMessage(null);
+    setCurrentStep(1);
+    setShowCategorySelection(false);
+    setTimeout(() => scrollToTop(), 50);
+  };
 
   // Load Banner Image
   useEffect(() => {
@@ -208,21 +242,15 @@ export const DonationRegistrationPage: React.FC = () => {
 
         if (purposesRes.status === 'fulfilled' && purposesRes.value.length > 0) {
           setDonationPurposes(purposesRes.value);
-          if (!formData.donationPurposeId) {
-            setFormData((prev: any) => ({ ...prev, donationPurposeId: purposesRes.value[0].id.toString() }));
-          }
         } else {
           const defaultPurposes: DonationPurpose[] = [
-            { id: 1, code: 'GENERAL_FUND', nameEn: 'General Fund', nameMr: 'सर्वसाधारण निधी' },
-            { id: 2, code: 'EDUCATION', nameEn: 'Educational Aid', nameMr: 'शैक्षणिक मदत' },
-            { id: 3, code: 'MEDICAL', nameEn: 'Medical Support', nameMr: 'वैद्यकीय मदत' },
-            { id: 4, code: 'SOCIAL_WELFARE', nameEn: 'Social Welfare', nameMr: 'समाजउपयोगी उपक्रम' },
-            { id: 5, code: 'SHIBIR', nameEn: 'Shibir Fund', nameMr: 'शिबीर व शिबीर उपक्रम' },
+            { id: 1, code: 'GENERAL_FUND', nameEn: 'General Fund', nameMr: 'सर्वसाधारण निधी / समाजोपयोगी कार्य', descriptionMr: 'संस्थेच्या विविध सामाजिक उपक्रमांसाठी' },
+            { id: 2, code: 'EDUCATION', nameEn: 'Educational Aid', nameMr: 'शैक्षणिक मदत व शिष्यवृत्ती', descriptionMr: 'गरजू विद्यार्थ्यांसाठी शैक्षणिक मदत' },
+            { id: 3, code: 'MEDICAL', nameEn: 'Medical Support', nameMr: 'वैद्यकीय मदत व आरोग्य शिबीर', descriptionMr: 'आरोग्य व रुग्ण सेवेसाठी' },
+            { id: 4, code: 'DISASTER', nameEn: 'Disaster Relief', nameMr: 'आपत्ती व्यवस्थापन व मदत निधी', descriptionMr: 'नैसर्गिक आपत्ती काळात मदतीसाठी' },
+            { id: 5, code: 'CULTURAL', nameEn: 'Cultural & Event Fund', nameMr: 'सांस्कृतिक व सामाजिक कार्यक्रम', descriptionMr: 'सांस्कृतिक व सामाजिक कार्यक्रमांसाठी' },
           ];
           setDonationPurposes(defaultPurposes);
-          if (!formData.donationPurposeId) {
-            setFormData((prev: any) => ({ ...prev, donationPurposeId: '1' }));
-          }
         }
 
         if (qrRes.status === 'fulfilled') {
@@ -279,6 +307,8 @@ export const DonationRegistrationPage: React.FC = () => {
       val = value.replace(/[^0-9]/g, '').slice(0, 10);
     } else if (name === 'pincode') {
       val = value.replace(/[^0-9]/g, '').slice(0, 6);
+    } else if (name === 'panNumber') {
+      val = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
     } else if (name === 'amount') {
       val = value.replace(/[^0-9]/g, '');
     }
@@ -375,6 +405,7 @@ export const DonationRegistrationPage: React.FC = () => {
         email: formData.email || undefined,
         birthDate: formData.birthDate || undefined,
         gender: formData.gender,
+        panNumber: formData.panNumber ? String(formData.panNumber).trim().toUpperCase() : undefined,
         address: formData.address,
         city: formData.city,
         stateId: formData.stateId ? Number(formData.stateId) : undefined,
@@ -449,6 +480,7 @@ export const DonationRegistrationPage: React.FC = () => {
         if (!success) return;
       }
       setRegistrationComplete(true);
+      setShowSuccessModal(true);
       setCurrentStep(4);
       clearDraft(DRAFT_KEY);
       scrollToTop();
@@ -465,6 +497,7 @@ export const DonationRegistrationPage: React.FC = () => {
 
       await api.saveDonationDraft({
         ...formData,
+        panNumber: formData.panNumber ? String(formData.panNumber).trim().toUpperCase() : undefined,
         receiptNumber: receiptNumber || undefined,
         amount: Number(formData.amount),
         donationTypeId: Number(formData.donationTypeId || 1),
@@ -589,6 +622,8 @@ export const DonationRegistrationPage: React.FC = () => {
 
   const handleResetForm = () => {
     setRegistrationComplete(false);
+    setShowSuccessModal(false);
+    setShowCategorySelection(true);
     setCurrentStep(1);
     setReceiptNumber('');
     setFormData({
@@ -597,6 +632,7 @@ export const DonationRegistrationPage: React.FC = () => {
       email: '',
       birthDate: '',
       gender: 'पुरुष',
+      panNumber: '',
       address: '',
       city: '',
       stateId: states.find(s => s.nameEn === 'Maharashtra')?.id.toString() || '',
@@ -605,7 +641,7 @@ export const DonationRegistrationPage: React.FC = () => {
       pincode: '',
 
       donationTypeId: '1',
-      donationPurposeId: '1',
+      donationPurposeId: '',
       customPurpose: '',
       inMemoryOfToggle: false,
       inMemoryOfName: '',
@@ -628,6 +664,10 @@ export const DonationRegistrationPage: React.FC = () => {
   return (
     <div className="flex flex-col w-full font-body">
       <ConfirmModal state={confirmState} onClose={closeConfirm} />
+      <RegistrationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+      />
 
       {/* 1. Hero Banner (Matches Member Registration Banner Size & Design) */}
       <section className="relative w-full overflow-hidden bg-cream-dark/20 p-2 md:p-4 section-gap-top">
@@ -685,9 +725,106 @@ export const DonationRegistrationPage: React.FC = () => {
       {/* Form Section Container */}
       <section className="w-full px-4 max-w-4xl mx-auto space-y-6 section-gap-top mb-12" ref={formContainerRef}>
 
+        {/* Donation Category Selection Screen */}
+        {showCategorySelection && !registrationComplete ? (
+          <div className="bg-white rounded-card-lg border border-saffron/15 shadow-soft p-6 md:p-8 space-y-6 animate-fadeIn">
+            <div className="text-center space-y-2 border-b border-saffron/10 pb-5">
+              <div className="w-12 h-12 rounded-2xl bg-saffron/10 text-saffron-dark flex items-center justify-center mx-auto">
+                <HeartHandshake size={26} />
+              </div>
+              <h2 className="text-xl md:text-2xl font-extrabold text-charcoal" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                देणगी प्रकार / उद्देश निवडा
+              </h2>
+              <p className="text-xs md:text-sm text-charcoal/70 max-w-xl mx-auto">
+                तुम्ही कोणत्या सामाजिक उपक्रमासाठी देणगी देऊ इच्छिता, तो योग्य प्रकार खालीलपैकी निवडा. पुढे नोंदणी अर्जात निवडलेला प्रकार आपोआप भरला जाईल.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {donationPurposes.map((purpose) => (
+                <button
+                  key={purpose.id}
+                  type="button"
+                  onClick={() => handleSelectCategory(purpose.id.toString())}
+                  className="text-left p-5 rounded-card-lg border-2 border-saffron/15 bg-cream/25 hover:bg-saffron/5 hover:border-saffron transition-all group shadow-xs flex flex-col justify-between gap-3 cursor-pointer"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-saffron/15 text-saffron-dark group-hover:bg-saffron group-hover:text-white transition-colors">
+                        <Sparkles size={16} />
+                      </span>
+                      <span className="text-[11px] font-bold text-saffron-dark opacity-80 group-hover:opacity-100">
+                        निवडा →
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-charcoal group-hover:text-saffron-dark transition-colors" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                      {purpose.nameMr}
+                    </h3>
+                    {purpose.descriptionMr && (
+                      <p className="text-xs text-charcoal/65 leading-relaxed">
+                        {purpose.descriptionMr}
+                      </p>
+                    )}
+                  </div>
+                  <div className="pt-2 border-t border-saffron/10 flex items-center justify-between text-xs font-bold text-saffron-dark">
+                    <span>देणगी द्या</span>
+                    <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => handleSelectCategory('other')}
+                className="text-left p-5 rounded-card-lg border-2 border-dashed border-saffron/30 bg-white hover:bg-saffron/5 hover:border-saffron transition-all group shadow-xs flex flex-col justify-between gap-3 cursor-pointer"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-charcoal/10 text-charcoal group-hover:bg-saffron group-hover:text-white transition-colors">
+                      <Plus size={16} />
+                    </span>
+                    <span className="text-[11px] font-bold text-saffron-dark opacity-80 group-hover:opacity-100">
+                      निवडा →
+                    </span>
+                  </div>
+                  <h3 className="text-base font-bold text-charcoal group-hover:text-saffron-dark transition-colors" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                    इतर देणगी उद्देश (Other)
+                  </h3>
+                  <p className="text-xs text-charcoal/65 leading-relaxed">
+                    वरील यादीव्यतिरिक्त इतर विशेष कारणासाठी देणगी नोंदवा.
+                  </p>
+                </div>
+                <div className="pt-2 border-t border-saffron/10 flex items-center justify-between text-xs font-bold text-saffron-dark">
+                  <span>देणगी द्या</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
+
         {/* Stepper Card */}
         {!registrationComplete && (
-          <div className="bg-white rounded-card-lg border border-saffron/5 shadow-soft p-5">
+          <div className="bg-white rounded-card-lg border border-saffron/5 shadow-soft p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-saffron/10">
+              <div className="text-xs text-charcoal/75">
+                निवडलेली देणगी श्रेणी:{' '}
+                <span className="font-bold text-saffron-dark">
+                  {selectedPurpose?.nameMr || 'देणगी उद्देश'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategorySelection(true);
+                  scrollToTop();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cream border border-saffron/25 text-xs font-bold text-saffron-dark hover:bg-saffron/10 transition-colors cursor-pointer"
+              >
+                <ArrowLeft size={13} /> देणगी प्रकार बदला
+              </button>
+            </div>
             <StepIndicator steps={steps} currentStep={currentStep} layout="horizontal" />
           </div>
         )}
@@ -726,12 +863,18 @@ export const DonationRegistrationPage: React.FC = () => {
                 {/* Birth Date */}
                 <div>
                   <label className="block text-xs font-bold text-charcoal/75 mb-1">
-                    जन्म तारीख
+                    जन्म तारीख <span className="text-red-500">*</span>
                   </label>
                   <DatePickerDropdown
                     value={formData.birthDate}
-                    onChange={(event) => setFormData({ ...formData, birthDate: event.target.value })}
+                    onChange={(event) => {
+                      setFormData({ ...formData, birthDate: event.target.value });
+                      if (errors.birthDate) {
+                        setErrors((prev: any) => ({ ...prev, birthDate: undefined }));
+                      }
+                    }}
                   />
+                  {errors.birthDate && <p className="text-red-500 text-xs mt-1">{errors.birthDate}</p>}
                 </div>
 
                 {/* Mobile */}
@@ -790,6 +933,27 @@ export const DonationRegistrationPage: React.FC = () => {
                     <option value="स्त्री">स्त्री</option>
                     <option value="इतर">इतर</option>
                   </select>
+                </div>
+
+                {/* PAN Card Number (Optional) */}
+                <div>
+                  <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                    पॅन कार्ड क्रमांक
+                  </label>
+                  <input
+                    type="text"
+                    name="panNumber"
+                    maxLength={10}
+                    value={formData.panNumber || ''}
+                    onChange={handleInputChange}
+                    placeholder="उदा. ABCDE1234F"
+                    className={`w-full px-3.5 py-2.5 rounded-card border text-sm uppercase font-mono outline-none bg-cream/5 transition-all ${
+                      errors.panNumber
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                    }`}
+                  />
+                  {errors.panNumber && <p className="text-red-500 text-xs mt-1">{errors.panNumber}</p>}
                 </div>
 
                 {/* State Dropdown (from Backend DB) */}
@@ -1310,7 +1474,8 @@ export const DonationRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / लिंग:</span> <span className="font-bold text-charcoal">{formData.birthDate || '-'} / {formData.gender || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2"><span className="text-charcoal/60 block text-[11px]">गोपनीयता:</span> <span className="font-bold text-charcoal">{formData.isAnonymous ? 'नाव गोपनीय ठेवावे (होय)' : 'सार्वजनिक (नाही)'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पॅन क्रमांक (PAN):</span> <span className="font-bold font-mono text-charcoal">{formData.panNumber || '-'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोपनीयता:</span> <span className="font-bold text-charcoal">{formData.isAnonymous ? 'नाव गोपनीय ठेवावे (होय)' : 'सार्वजनिक (नाही)'}</span></div>
                   </div>
                 </div>
 
@@ -1463,6 +1628,8 @@ export const DonationRegistrationPage: React.FC = () => {
             </div>
           )}
         </div>
+        </>
+        )}
       </section>
 
       {/* Admin QR Code Edit Modal */}
@@ -1624,7 +1791,8 @@ export const DonationRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">जन्म तारीख / लिंग:</span> <span className="font-bold text-charcoal">{formData.birthDate || '-'} / {formData.gender || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2"><span className="text-charcoal/60 block text-[11px]">गोपनीयता:</span> <span className="font-bold text-charcoal">{formData.isAnonymous ? 'नाव गोपनीय ठेवावे (होय)' : 'सार्वजनिक (नाही)'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पॅन क्रमांक (PAN):</span> <span className="font-bold font-mono text-charcoal">{formData.panNumber || '-'}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">गोपनीयता:</span> <span className="font-bold text-charcoal">{formData.isAnonymous ? 'नाव गोपनीय ठेवावे (होय)' : 'सार्वजनिक (नाही)'}</span></div>
                   </div>
                 </div>
 

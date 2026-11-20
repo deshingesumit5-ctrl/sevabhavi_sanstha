@@ -19,6 +19,7 @@ public class DonationRequestDTO {
     private Integer districtId;
     private Integer stateId;
     private String pincode;
+    private String panNumber;
 
     private Integer donationTypeId;
     private Integer donationPurposeId;

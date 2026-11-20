@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import StepIndicator from '../../components/StepIndicator';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
+import RegistrationSuccessModal from '../../components/RegistrationSuccessModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, Loader2, CreditCard,
   Calendar, MapPin, User, Printer, ShieldCheck, Pencil, Trash2,
@@ -51,6 +52,7 @@ export const ShibirRegistrationPage: React.FC = () => {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(() => localDraft?.screenshotPreview ?? null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [registrationComplete, setRegistrationComplete] = useState<boolean>(() => localDraft?.registrationComplete ?? false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [registeredId, setRegisteredId] = useState<number | null>(() => localDraft?.registeredId ?? null);
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
 
@@ -268,7 +270,7 @@ export const ShibirRegistrationPage: React.FC = () => {
     }, 50);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: { target: { name: string; value: string } }) => {
     const { name, value } = e.target;
     let val = value;
     if (name === 'mobile' || name === 'relativeMobile') {
@@ -408,6 +410,12 @@ export const ShibirRegistrationPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      const finalTxnId =
+        upiTxnId ||
+        (paymentMode === 'Cash' ? 'CASH-' : 'TXN-') +
+          Date.now() +
+          Math.random().toString(36).substring(2, 6).toUpperCase();
+
       const payload = {
         shibirName: formData.shibirName,
         shibirDate: formData.shibirDate || null,
@@ -430,7 +438,7 @@ export const ShibirRegistrationPage: React.FC = () => {
         passportPhotoUrl: passportPhotoPreview || null,
         paymentMode: paymentMode,
         amountPaid: paymentMode === 'Cash' ? Number(cashAmountReceived || 0) : shibirPlanAmount,
-        upiTxnId: upiTxnId || null,
+        upiTxnId: finalTxnId,
         screenshotUrl: screenshotPreview || null,
         paymentStatus: paymentMode === 'Cash' ? 'PAID' : 'SUBMITTED',
         approvalStatus: 'PENDING',
@@ -443,18 +451,21 @@ export const ShibirRegistrationPage: React.FC = () => {
         const fd = new FormData();
         fd.append('registrationType', 'SHIBIR');
         fd.append('registrationId', saved.id.toString());
+        fd.append('memberName', formData.fullName);
+        fd.append('memberMobile', formData.mobile);
         fd.append('amount', paymentMode === 'Cash' ? (cashAmountReceived || shibirPlanAmount.toString()) : shibirPlanAmount.toString());
         fd.append('membershipType', 'shibir');
         fd.append('paymentMode', paymentMode);
-        if (upiTxnId) fd.append('upiTxnId', upiTxnId);
+        fd.append('upiTxnId', finalTxnId);
         if (screenshotFile) fd.append('file', screenshotFile);
 
         await api.submitPayment(fd);
-      } catch (payErr) {
-        console.warn('Payment record save warning:', payErr);
+      } catch (payErr: any) {
+        alert('नोंदणी जतन झाली, परंतु पेमेंट स्क्रीनशॉट अपलोड करण्यात अडचण आली: ' + (payErr?.message || payErr));
       }
 
       setRegistrationComplete(true);
+      setShowSuccessModal(true);
       clearDraft(DRAFT_KEY);
       scrollToFormTop();
     } catch (err: any) {
@@ -1737,6 +1748,11 @@ export const ShibirRegistrationPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <RegistrationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+      />
     </div>
   );
 };

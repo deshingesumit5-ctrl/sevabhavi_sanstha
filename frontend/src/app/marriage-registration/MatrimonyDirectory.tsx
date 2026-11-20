@@ -6,18 +6,14 @@ import {
   User,
   Search,
   RotateCcw,
-  ShieldCheck,
   Lock,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Camera,
   LogIn,
   UserPlus,
   Users,
-  Sparkles
 } from 'lucide-react';
-import { api, type MatrimonyPublicProfile, type District, type City } from '../../services/api';
+import { api, type MatrimonyPublicProfile, type State, type District, type City } from '../../services/api';
 import { useMatrimonyAuth } from '../../context/MatrimonyAuthContext';
 import MatrimonyLoginModal from '../../components/MatrimonyLoginModal';
 
@@ -37,7 +33,7 @@ interface MatrimonyDirectoryProps {
 
 export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRegister }) => {
   const navigate = useNavigate();
-  const { matrimonyUser, favorites, toggleFavorite } = useMatrimonyAuth();
+  const { matrimonyUser, favorites, quota, refreshQuota, toggleFavorite } = useMatrimonyAuth();
 
   // Filters state
   const [profileType, setProfileType] = useState<string>('all'); // 'all', 'bride', 'groom'
@@ -47,11 +43,14 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
   const [occupationType, setOccupationType] = useState<string>('सर्व');
   const [selectedStateId, setSelectedStateId] = useState<string>('');
   const [selectedDistrictId, setSelectedDistrictId] = useState<string>('');
+  const [selectedTalukaId, setSelectedTalukaId] = useState<string>('');
   const [city, setCity] = useState<string>('सर्व');
   const [sortOrder, setSortOrder] = useState<string>('created_desc');
 
   // Lookups & Dynamic Options from real approved records
+  const [states, setStates] = useState<State[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [talukas, setTalukas] = useState<{ id: number; nameMr: string; nameEn: string }[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [availableCastes, setAvailableCastes] = useState<string[]>([]);
   const [availableEducations, setAvailableEducations] = useState<string[]>([]);
@@ -66,21 +65,12 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
 
-  // Banner slide state
-  const [heroSlide, setHeroSlide] = useState<number>(0);
-  const bannerImages = [
-    '/logo.png', // Fallback local branding or neutral couple illustration
-  ];
-
-  // Load districts and populate dynamic filter options strictly from real DB records
+  // Load all Indian states and populate dynamic filter options strictly from real DB records
   useEffect(() => {
-    api.getStates().then((res) => {
-      const mh = res.find((s) => s.nameEn === 'Maharashtra');
-      if (mh) {
-        setSelectedStateId(mh.id.toString());
-        api.getDistricts(mh.id).then(setDistricts).catch(() => { });
-      }
-    }).catch(() => { });
+    api.getStates().then(setStates).catch(() => { });
+    if (matrimonyUser) {
+      refreshQuota();
+    }
 
     // Populate filter dropdowns ONLY from real APPROVED profiles in the database
     api.getMatrimonyProfiles({}, 0, 100).then((res) => {
@@ -96,16 +86,38 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
         setAvailableOccupations(occupations);
       }
     }).catch(() => { });
-  }, []);
+  }, [matrimonyUser, refreshQuota]);
+
+  const handleStateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedStateId(val);
+    setSelectedDistrictId('');
+    setSelectedTalukaId('');
+    setCity('सर्व');
+    setTalukas([]);
+    setCities([]);
+    if (val) {
+      const dists = await api.getDistricts(Number(val)).catch(() => []);
+      setDistricts(dists);
+    } else {
+      setDistricts([]);
+    }
+  };
 
   const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setSelectedDistrictId(val);
+    setSelectedTalukaId('');
     setCity('सर्व');
     if (val) {
-      const c = await api.getCities(Number(val)).catch(() => []);
+      const [tals, c] = await Promise.all([
+        api.getTalukas(Number(val)).catch(() => []),
+        api.getCities(Number(val)).catch(() => []),
+      ]);
+      setTalukas(tals);
       setCities(c);
     } else {
+      setTalukas([]);
       setCities([]);
     }
   };
@@ -145,6 +157,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
           occupationType: occupationType === 'सर्व' ? undefined : occupationType,
           stateId: selectedStateId ? Number(selectedStateId) : undefined,
           districtId: selectedDistrictId ? Number(selectedDistrictId) : undefined,
+          talukaId: selectedTalukaId ? Number(selectedTalukaId) : undefined,
           city: city === 'सर्व' ? undefined : city,
           sort: sortOrder,
         };
@@ -170,7 +183,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
         setLoadingMore(false);
       }
     },
-    [profileType, ageRange, caste, educationLevel, occupationType, selectedStateId, selectedDistrictId, city, sortOrder]
+    [profileType, ageRange, caste, educationLevel, occupationType, selectedStateId, selectedDistrictId, selectedTalukaId, city, sortOrder]
   );
 
   useEffect(() => {
@@ -188,7 +201,12 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
     setCaste('सर्व');
     setEducationLevel('सर्व');
     setOccupationType('सर्व');
+    setSelectedStateId('');
     setSelectedDistrictId('');
+    setSelectedTalukaId('');
+    setDistricts([]);
+    setTalukas([]);
+    setCities([]);
     setCity('सर्व');
     setSortOrder('created_desc');
   };
@@ -221,6 +239,35 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
 
       {/* ── 2. Tabs + Filter Box (matching Target Image 3) ────────────────── */}
       <section className="	max-w-5xl mx-auto w-full px-4 mt-6 space-y-4">
+        {/* Logged-in Matrimony Quota & Opposite-Gender Notice Banner */}
+        {matrimonyUser && (
+          <div className="bg-white rounded-2xl border border-saffron/25 p-3.5 sm:px-5 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="text-xs text-charcoal/80">
+              <span className="font-bold text-saffron-dark">
+                नमस्कार, {matrimonyUser.fullName}
+              </span>{' '}
+              — आपल्या प्लॅननुसार फक्त{' '}
+              <span className="font-bold text-charcoal">
+                {matrimonyUser.profileType?.toLowerCase() === 'groom' ? 'वधू (Bride)' : 'वर (Groom)'}
+              </span>{' '}
+              प्रोफाइल्स पाहण्याची सुविधा उपलब्ध आहे.
+            </div>
+            {quota && (
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                    quota.remainingViews === 0
+                      ? 'bg-red-100 text-red-700 border border-red-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}
+                >
+                  वापरलेले बायोडाटा: {quota.usedViews} / {quota.biodataLimit} (उर्वरित: {quota.remainingViews})
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Top Tabs: सर्व प्रोफाइल | वधू (Bride) | वर (Groom) */}
         <div className="flex w-full sm:inline-flex sm:w-auto items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-white rounded-full border border-saffron/15 shadow-sm">
           <button
@@ -343,14 +390,35 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                 </div>
               </div>
 
-              {/* राहण्याचे ठिकाण (जिल्हा) */}
+              {/* राज्य (संपूर्ण भारत) */}
               <div>
-                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">राहण्याचे ठिकाण</label>
+                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">राज्य (भारतभर)</label>
+                <div className="relative">
+                  <select
+                    value={selectedStateId}
+                    onChange={handleStateChange}
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                  >
+                    <option value="">सर्व राज्ये</option>
+                    {states.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.nameMr || s.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* जिल्हा */}
+              <div>
+                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">जिल्हा</label>
                 <div className="relative">
                   <select
                     value={selectedDistrictId}
                     onChange={handleDistrictChange}
-                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    disabled={!selectedStateId}
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none disabled:opacity-50 focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="">सर्व जिल्हे</option>
                     {districts.map((d) => (
@@ -363,14 +431,36 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
                 </div>
               </div>
 
-              {/* तालुका / शहर */}
+              {/* तालुका */}
               <div>
-                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">तालुका / शहर</label>
+                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">तालुका</label>
+                <div className="relative">
+                  <select
+                    value={selectedTalukaId}
+                    onChange={(e) => setSelectedTalukaId(e.target.value)}
+                    disabled={!selectedDistrictId}
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none disabled:opacity-50 focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                  >
+                    <option value="">सर्व तालुके</option>
+                    {talukas.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.nameMr || t.nameEn}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-charcoal/40 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* शहर */}
+              <div>
+                <label className="block text-xs font-bold text-[#8A3B0F] mb-1.5">शहर / गाव</label>
                 <div className="relative">
                   <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none focus:border-saffron focus:ring-2 focus:ring-saffron/20"
+                    disabled={!selectedDistrictId}
+                    className="w-full appearance-none pl-3 pr-7 py-2.5 truncate rounded-xl border border-saffron/25 bg-white text-xs font-semibold text-charcoal outline-none disabled:opacity-50 focus:border-saffron focus:ring-2 focus:ring-saffron/20"
                   >
                     <option value="सर्व">सर्व शहरे</option>
                     {cities.map((c) => (
@@ -384,7 +474,7 @@ export const MatrimonyDirectory: React.FC<MatrimonyDirectoryProps> = ({ onGoToRe
               </div>
 
               {/* Action Buttons: शोधा and रीसेट */}
-              <div className="col-span-2 flex items-end justify-end gap-2.5">
+              <div className="col-span-2 lg:col-span-4 flex items-end justify-end gap-2.5 pt-1">
                 <button
                   type="submit"
                   className="px-6 py-2 bg-[#C45D14] hover:bg-[#A84A0C] text-white rounded-xl font-bold text-xs shadow-md shadow-saffron/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"

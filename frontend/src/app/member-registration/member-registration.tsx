@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import StepIndicator from '../../components/StepIndicator';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
+import RegistrationSuccessModal from '../../components/RegistrationSuccessModal';
+import DatePickerDropdown from '../../components/DatePickerDropdown';
 import { ArrowLeft, ArrowRight, CheckCircle2, FileText, Crown, RefreshCw, QrCode, Upload, Loader2, Plus, Pencil, Trash2, Lock, CreditCard, X, Smartphone, Calendar, Download, Eye, Printer, RotateCcw } from 'lucide-react';
-import { api, BASE_URL, type State, type District, type Taluka, type Area, type Gender, type MaritalStatus, type BloodGroup, type PaymentSettingResponse } from '../../services/api';
+import { api, BASE_URL, type State, type District, type Taluka, type Area, type Gender, type MaritalStatus, type BloodGroup, type PaymentSettingResponse, type RatnagiriLookupResponse, type PuneSuburbItem } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage, deleteImage, fetchByCategory, imageUrl, type GalleryImage } from '../../services/galleryApi';
 import { buildUpiLink } from '../../utils/upi';
@@ -23,14 +24,17 @@ export const MemberRegistrationPage: React.FC = () => {
 
   // Lookup state loaded from DB
   const [states, setStates] = useState<State[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
+  const [, setDistricts] = useState<District[]>([]);
   const [talukas, setTalukas] = useState<Taluka[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
+  const [, setAreas] = useState<Area[]>([]);
   const [genders, setGenders] = useState<Gender[]>([]);
   const [bloodGroups, setBloodGroups] = useState<BloodGroup[]>([]);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
   const [registrationComplete, setRegistrationComplete] = useState<boolean>(() => localDraft?.registrationComplete ?? false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [showPreviewModal, setShowPreviewModal] = useState<boolean>(false);
+  const [ratnagiriData, setRatnagiriData] = useState<RatnagiriLookupResponse | null>(null);
+  const [puneSuburbs, setPuneSuburbs] = useState<PuneSuburbItem[]>([]);
   const { isAdmin } = useAuth();
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(null);
   const BANNER_SECTION_KEY = 'member_registration_banner';
@@ -137,6 +141,7 @@ export const MemberRegistrationPage: React.FC = () => {
 
   const handleResetForm = () => {
     setRegistrationComplete(false);
+    setShowSuccessModal(false);
     setCurrentStep(1);
     setFormData({
       fullName: '',
@@ -155,10 +160,19 @@ export const MemberRegistrationPage: React.FC = () => {
       annualIncome: '',
       currentAddress: '',
       permanentAddress: '',
-      stateId: states.find(s => s.nameEn === 'Maharashtra')?.id.toString() || '',
-      districtId: '',
+      stateId: ratnagiriData?.stateId?.toString() || states.find(s => s.nameEn === 'Maharashtra')?.id.toString() || '',
+      districtId: ratnagiriData?.districtId?.toString() || '',
       talukaId: '',
+      areaId: '',
       pincode: '',
+      permanentDistrict: 'रत्नागिरी',
+      permanentTalukaId: '',
+      permanentTaluka: '',
+      permanentVillage: '',
+      permanentPincode: '',
+      currentDistrict: 'पुणे',
+      currentSuburb: '',
+      currentPincode: '',
       memberType: 'annual',
       idProofNumber: '',
       expectations: '',
@@ -236,6 +250,14 @@ export const MemberRegistrationPage: React.FC = () => {
     talukaId: string;
     areaId: string;
     pincode: string;
+    permanentDistrict: string;
+    permanentTalukaId: string;
+    permanentTaluka: string;
+    permanentVillage: string;
+    permanentPincode: string;
+    currentDistrict: string;
+    currentSuburb: string;
+    currentPincode: string;
     memberType: string;
     idProofNumber: string;
     expectations: string;
@@ -270,6 +292,14 @@ export const MemberRegistrationPage: React.FC = () => {
       talukaId: '',
       areaId: '',
       pincode: '',
+      permanentDistrict: 'रत्नागिरी',
+      permanentTalukaId: '',
+      permanentTaluka: '',
+      permanentVillage: '',
+      permanentPincode: '',
+      currentDistrict: 'पुणे',
+      currentSuburb: '',
+      currentPincode: '',
 
       // Step 3: अतिरिक्त माहिती
       memberType: 'annual',
@@ -286,25 +316,37 @@ export const MemberRegistrationPage: React.FC = () => {
   useEffect(() => {
     const loadLookups = async () => {
       try {
-        const [statesData, gendersData, statusesData, bloodData] = await Promise.all([
+        const [statesData, gendersData, statusesData, bloodData, ratnagiriRes, puneRes] = await Promise.all([
           api.getStates(),
           api.getGenders(),
           api.getMaritalStatuses(),
-          api.getBloodGroups()
+          api.getBloodGroups(),
+          api.getRatnagiriLocation().catch(() => null),
+          api.getPuneSuburbs().catch(() => null),
         ]);
         setStates(statesData);
         setGenders(gendersData);
         setMaritalStatuses(statusesData);
         setBloodGroups(bloodData);
+        if (ratnagiriRes) setRatnagiriData(ratnagiriRes);
+        if (puneRes?.suburbs) setPuneSuburbs(puneRes.suburbs);
 
-        // Pre-select Maharashtra if no state present yet
+        // Pre-select Maharashtra / Ratnagiri fixed location defaults
         const mh = statesData.find(s => s.nameEn === 'Maharashtra');
+        const resolvedStateId = ratnagiriRes?.stateId?.toString() || mh?.id.toString() || '';
+        const resolvedDistrictId = ratnagiriRes?.districtId?.toString() || '';
         setFormData(prev => {
-          if (!prev.stateId && mh) {
-            api.getDistricts(mh.id).then(setDistricts).catch(console.error);
-            return { ...prev, stateId: mh.id.toString() };
+          const next = {
+            ...prev,
+            permanentDistrict: prev.permanentDistrict || 'रत्नागिरी',
+            currentDistrict: prev.currentDistrict || 'पुणे',
+            stateId: prev.stateId || resolvedStateId,
+            districtId: prev.districtId || resolvedDistrictId,
+          };
+          if (next.stateId) {
+            api.getDistricts(Number(next.stateId)).then(setDistricts).catch(console.error);
           }
-          return prev;
+          return next;
         });
       } catch (err) {
         console.error('Error loading lookup values:', err);
@@ -395,7 +437,16 @@ export const MemberRegistrationPage: React.FC = () => {
               stateId: '',
               districtId: '',
               talukaId: '',
+              areaId: '',
               pincode: '',
+              permanentDistrict: 'रत्नागिरी',
+              permanentTalukaId: '',
+              permanentTaluka: '',
+              permanentVillage: '',
+              permanentPincode: '',
+              currentDistrict: 'पुणे',
+              currentSuburb: '',
+              currentPincode: '',
               memberType: 'annual',
               idProofNumber: '',
               expectations: '',
@@ -492,80 +543,68 @@ export const MemberRegistrationPage: React.FC = () => {
     'पुष्टीकरण'
   ];
 
-  const getTodayDateString = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: { target: { name: string; value: string } }) => {
     const { name, value } = e.target;
     let val = value;
     if (name === 'mobile') {
       val = value.replace(/[^0-9]/g, '').slice(0, 10);
-    } else if (name === 'pincode') {
+    } else if (name === 'pincode' || name === 'permanentPincode' || name === 'currentPincode') {
       val = value.replace(/[^0-9]/g, '').slice(0, 6);
     }
-    setFormData((prev) => ({ ...prev, [name]: val }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: val,
+      ...(name === 'currentPincode' ? { pincode: val } : {}),
+    }));
     if (errors[name as keyof MemberFormErrors]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
   };
 
-  const handleStateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const stateIdVal = e.target.value;
-    setFormData(prev => ({ ...prev, stateId: stateIdVal, districtId: '', talukaId: '', areaId: '' }));
-    setDistricts([]);
-    setTalukas([]);
-    setAreas([]);
-    if (errors.stateId) {
-      setErrors((prev) => ({ ...prev, stateId: undefined }));
-    }
-    if (stateIdVal) {
-      try {
-        const data = await api.getDistricts(Number(stateIdVal));
-        setDistricts(data);
-      } catch (err) {
-        console.error('Error loading districts:', err);
-      }
-    }
+  const handlePermanentTalukaSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedVal = e.target.value;
+    const matched = ratnagiriData?.talukas?.find(
+      t => (t.id ? String(t.id) : t.nameEn) === selectedVal || t.nameMr === selectedVal
+    );
+    setFormData(prev => ({
+      ...prev,
+      permanentDistrict: 'रत्नागिरी',
+      permanentTalukaId: selectedVal,
+      permanentTaluka: matched?.nameMr || selectedVal,
+      permanentVillage: '',
+      permanentPincode: matched?.pincodes?.[0] || '',
+      stateId: ratnagiriData?.stateId ? String(ratnagiriData.stateId) : prev.stateId,
+      districtId: ratnagiriData?.districtId ? String(ratnagiriData.districtId) : prev.districtId,
+      talukaId: matched?.id ? String(matched.id) : '',
+    }));
+    setErrors(prev => ({ ...prev, permanentTalukaId: undefined, permanentVillage: undefined, permanentPincode: undefined }));
   };
 
-  const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const districtIdVal = e.target.value;
-    setFormData(prev => ({ ...prev, districtId: districtIdVal, talukaId: '', areaId: '' }));
-    setTalukas([]);
-    setAreas([]);
-    if (errors.districtId) {
-      setErrors((prev) => ({ ...prev, districtId: undefined }));
-    }
-    if (districtIdVal) {
-      try {
-        const data = await api.getTalukas(Number(districtIdVal));
-        setTalukas(data);
-      } catch (err) {
-        console.error('Error loading talukas:', err);
-      }
-    }
+  const handlePermanentVillageSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const villageMr = e.target.value;
+    const selectedTal = ratnagiriData?.talukas?.find(
+      t => (t.id ? String(t.id) : t.nameEn) === formData.permanentTalukaId || t.nameMr === formData.permanentTalukaId
+    );
+    const matchedVillage = selectedTal?.villages?.find(v => v.nameMr === villageMr);
+    setFormData(prev => ({
+      ...prev,
+      permanentVillage: villageMr,
+      permanentPincode: matchedVillage?.pincode || prev.permanentPincode || selectedTal?.pincodes?.[0] || '',
+    }));
+    setErrors(prev => ({ ...prev, permanentVillage: undefined, permanentPincode: undefined }));
   };
 
-  const handleTalukaChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const talukaIdVal = e.target.value;
-    setFormData(prev => ({ ...prev, talukaId: talukaIdVal, areaId: '' }));
-    setAreas([]);
-    if (errors.talukaId) {
-      setErrors((prev) => ({ ...prev, talukaId: undefined }));
-    }
-    if (talukaIdVal) {
-      try {
-        const data = await api.getAreas(Number(talukaIdVal));
-        setAreas(data);
-      } catch (err) {
-        console.error('Error loading areas:', err);
-      }
-    }
+  const handleCurrentSuburbSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const suburbMr = e.target.value;
+    const matchedSuburb = puneSuburbs.find(s => s.nameMr === suburbMr);
+    setFormData(prev => ({
+      ...prev,
+      currentDistrict: 'पुणे',
+      currentSuburb: suburbMr,
+      currentPincode: matchedSuburb?.pincode || prev.currentPincode,
+      pincode: matchedSuburb?.pincode || prev.currentPincode,
+    }));
+    setErrors(prev => ({ ...prev, currentSuburb: undefined, currentPincode: undefined }));
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -623,11 +662,18 @@ export const MemberRegistrationPage: React.FC = () => {
           idUploaded: formData.idUploaded,
           currentAddress: formData.currentAddress,
           permanentAddress: formData.permanentAddress,
-          state: { id: Number(formData.stateId) },
-          district: { id: Number(formData.districtId) },
-          taluka: { id: Number(formData.talukaId) },
+          state: (formData.stateId || ratnagiriData?.stateId) ? { id: Number(formData.stateId || ratnagiriData?.stateId) } : null,
+          district: (formData.districtId || ratnagiriData?.districtId) ? { id: Number(formData.districtId || ratnagiriData?.districtId) } : null,
+          taluka: /^\d+$/.test(String(formData.talukaId || formData.permanentTalukaId || '')) ? { id: Number(formData.talukaId || formData.permanentTalukaId) } : null,
           area: formData.areaId ? { id: Number(formData.areaId) } : null,
-          pincode: formData.pincode,
+          pincode: formData.currentPincode || formData.permanentPincode || formData.pincode,
+          permanentDistrict: formData.permanentDistrict || 'रत्नागिरी',
+          permanentTaluka: formData.permanentTaluka || undefined,
+          permanentVillage: formData.permanentVillage || undefined,
+          permanentPincode: formData.permanentPincode || undefined,
+          currentDistrict: formData.currentDistrict || 'पुणे',
+          currentSuburb: formData.currentSuburb || undefined,
+          currentPincode: formData.currentPincode || undefined,
           memberType: formData.memberType,
           idProofNumber: formData.idProofNumber || null,
           expectations: formData.expectations || null,
@@ -697,11 +743,18 @@ export const MemberRegistrationPage: React.FC = () => {
           idUploaded: formData.idUploaded,
           currentAddress: formData.currentAddress,
           permanentAddress: formData.permanentAddress,
-          state: { id: Number(formData.stateId) },
-          district: { id: Number(formData.districtId) },
-          taluka: { id: Number(formData.talukaId) },
+          state: (formData.stateId || ratnagiriData?.stateId) ? { id: Number(formData.stateId || ratnagiriData?.stateId) } : null,
+          district: (formData.districtId || ratnagiriData?.districtId) ? { id: Number(formData.districtId || ratnagiriData?.districtId) } : null,
+          taluka: /^\d+$/.test(String(formData.talukaId || formData.permanentTalukaId || '')) ? { id: Number(formData.talukaId || formData.permanentTalukaId) } : null,
           area: formData.areaId ? { id: Number(formData.areaId) } : null,
-          pincode: formData.pincode,
+          pincode: formData.currentPincode || formData.permanentPincode || formData.pincode,
+          permanentDistrict: formData.permanentDistrict || 'रत्नागिरी',
+          permanentTaluka: formData.permanentTaluka || undefined,
+          permanentVillage: formData.permanentVillage || undefined,
+          permanentPincode: formData.permanentPincode || undefined,
+          currentDistrict: formData.currentDistrict || 'पुणे',
+          currentSuburb: formData.currentSuburb || undefined,
+          currentPincode: formData.currentPincode || undefined,
           memberType: formData.memberType,
           idProofNumber: formData.idProofNumber || null,
           expectations: formData.expectations || null,
@@ -833,6 +886,7 @@ export const MemberRegistrationPage: React.FC = () => {
       }
 
       setRegistrationComplete(true);
+      setShowSuccessModal(true);
 
       // Clear draft storage key only after successful final submission
       clearDraft();
@@ -850,10 +904,7 @@ export const MemberRegistrationPage: React.FC = () => {
   };
 
   // Find names for final preview
-  const selectedState = states.find(s => s.id === Number(formData.stateId));
-  const selectedDistrict = districts.find(d => d.id === Number(formData.districtId));
   const selectedTaluka = talukas.find(t => t.id === Number(formData.talukaId));
-  const selectedArea = areas.find(a => a.id === Number(formData.areaId));
   const selectedGenderLabel = genders.find(g => g.code === formData.gender)?.labelMr || formData.gender;
   const selectedBloodLabel = bloodGroups.find(b => b.code === formData.bloodGroup)?.labelMr || formData.bloodGroup;
   const selectedMaritalLabel = maritalStatuses.find(m => m.code === formData.maritalStatus)?.labelMr || formData.maritalStatus;
@@ -1084,15 +1135,18 @@ export const MemberRegistrationPage: React.FC = () => {
                     <h4 className="text-xs sm:text-sm font-bold text-saffron-dark">२. पत्ता व रहिवासी माहिती (Address Details)</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">तालुका / जिल्हा / राज्य:</span> <span className="font-bold text-charcoal">{selectedTaluka?.nameMr || selectedTaluka?.nameEn || ''}, {selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
-                    {selectedArea && (
-                      <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भाग / एरिया:</span> <span className="font-bold text-charcoal">{selectedArea.nameMr || selectedArea.nameEn}</span></div>
-                    )}
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पिनकोड:</span> <span className="font-bold text-charcoal">{formData.pincode || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.currentAddress || '-'}</span></div>
-                    {formData.permanentAddress && (
-                      <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">कायमचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.permanentAddress}</span></div>
-                    )}
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3">
+                      <span className="text-charcoal/60 block text-[11px]">कायमचा पत्ता (रत्नागिरी जिल्हा):</span>
+                      <span className="font-bold text-charcoal">
+                        {formData.permanentAddress || '-'}, मु. पो. {formData.permanentVillage || '-'}, ता. {formData.permanentTaluka || selectedTaluka?.nameMr || '-'}, जि. {formData.permanentDistrict || 'रत्नागिरी'} - {formData.permanentPincode || '-'}
+                      </span>
+                    </div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3">
+                      <span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता (पुणे जिल्हा):</span>
+                      <span className="font-bold text-charcoal">
+                        {formData.currentAddress || '-'}, उपनगर: {formData.currentSuburb || '-'}, जि. {formData.currentDistrict || 'पुणे'} - {formData.currentPincode || formData.pincode || '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1410,138 +1464,249 @@ export const MemberRegistrationPage: React.FC = () => {
               </div>
             )}
 
-            {/* STEP 2: पत्ता माहिती */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-charcoal/75 mb-1">सध्याचा पत्ता <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="currentAddress"
-                    value={formData.currentAddress}
-                    onChange={handleInputChange}
-                    rows={2}
-                    placeholder="घर क्रमांक, इमारत, गल्ली, भाग, शहर"
-                    className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 resize-none transition-all ${errors.currentAddress
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                      }`}
-                  />
-                  {errors.currentAddress && <p className="text-red-500 text-xs mt-1">{errors.currentAddress}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-charcoal/75 mb-1">कायमचा पत्ता (उदा. मूळ गावचा पत्ता) <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    name="permanentAddress"
-                    value={formData.permanentAddress}
-                    onChange={handleInputChange}
-                    rows={2}
-                    placeholder="उदा. मु. पो. दापोली, जि. रत्नागिरी"
-                    className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 resize-none transition-all ${errors.permanentAddress
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                      }`}
-                  />
-                  {errors.permanentAddress && <p className="text-red-500 text-xs mt-1">{errors.permanentAddress}</p>}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-charcoal/75 mb-1">राज्य <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="stateId"
-                      value={formData.stateId}
-                      onChange={handleStateChange}
-                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.stateId
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                        }`}
-                    >
-                      <option value="">निवडा</option>
-                      {states.map(s => (
-                        <option key={s.id} value={s.id}>{s.nameMr}</option>
-                      ))}
-                    </select>
-                    {errors.stateId && <p className="text-red-500 text-xs mt-1">{errors.stateId}</p>}
+            {/* STEP 2: पत्ता माहिती (Permanent: Ratnagiri Restricted, Current: Pune Restricted) */}
+            {currentStep === 2 && (() => {
+              const selectedRatnagiriTaluka = ratnagiriData?.talukas?.find(
+                t => (t.id ? String(t.id) : t.nameEn) === formData.permanentTalukaId || t.nameMr === formData.permanentTalukaId || t.nameMr === formData.permanentTaluka
+              );
+              const talukaVillages = selectedRatnagiriTaluka?.villages || [];
+              const talukaPincodes = selectedRatnagiriTaluka?.pincodes || ratnagiriData?.allPincodes || [];
+
+              return (
+              <div className="space-y-6">
+                {/* 1. कायमचा पत्ता (Permanent Address - Exclusively Ratnagiri District) */}
+                <div className="p-4 sm:p-5 rounded-card-lg border-2 border-saffron/20 bg-cream/20 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-saffron/15 pb-2.5">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                        १. कायमचा पत्ता (मूळ गाव - रत्नागिरी जिल्हा)
+                      </h3>
+                      <p className="text-[11px] text-charcoal/65">
+                        कायमचा पत्ता फक्त रत्नागिरी जिल्ह्यापुरता मर्यादित आहे (जिल्हा → तालुका → गाव → पिनकोड)
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-saffron/15 text-saffron-dark text-[11px] font-bold">
+                      रत्नागिरी जिल्हा मर्यादित
+                    </span>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-bold text-charcoal/75 mb-1">जिल्हा <span className="text-red-500">*</span>
+                    <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                      कायमचा पत्ता (घर क्र. / वाडी / गल्ली) <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="districtId"
-                      value={formData.districtId}
-                      onChange={handleDistrictChange}
-                      disabled={!formData.stateId}
-                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.districtId
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                        }`}
-                    >
-                      <option value="">निवडा</option>
-                      {districts.map(d => (
-                        <option key={d.id} value={d.id}>{d.nameMr}</option>
-                      ))}
-                    </select>
-                    {errors.districtId && <p className="text-red-500 text-xs mt-1">{errors.districtId}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-charcoal/75 mb-1">तालुका <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="talukaId"
-                      value={formData.talukaId}
-                      onChange={handleTalukaChange}
-                      disabled={!formData.districtId}
-                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.talukaId
-                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                          : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
-                        }`}
-                    >
-                      <option value="">निवडा</option>
-                      {talukas.map(t => (
-                        <option key={t.id} value={t.id}>{t.nameMr}</option>
-                      ))}
-                    </select>
-                    {errors.talukaId && <p className="text-red-500 text-xs mt-1">{errors.talukaId}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-charcoal/75 mb-1">भाग / एरिया</label>
-                    <select
-                      name="areaId"
-                      value={formData.areaId}
+                    <textarea
+                      name="permanentAddress"
+                      value={formData.permanentAddress}
                       onChange={handleInputChange}
-                      disabled={!formData.talukaId}
-                      className="w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron"
-                    >
-                      <option value="">निवडा (ऐच्छिक)</option>
-                      {areas.map(a => (
-                        <option key={a.id} value={a.id}>{a.nameMr || a.nameEn}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-charcoal/75 mb-1">पिनकोड <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="pincode"
-                      value={formData.pincode}
-                      onChange={handleInputChange}
-                      maxLength={6}
-                      inputMode="numeric"
-                      pattern="\d*"
-                      placeholder="६ अंकी पिनकोड"
-                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.pincode
+                      rows={2}
+                      placeholder="उदा. घर क्र. ४२, वरची वाडी, मु. पो. दापोली"
+                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white resize-none transition-all ${errors.permanentAddress
                           ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                           : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
                         }`}
                     />
-                    {errors.pincode && <p className="text-red-500 text-xs mt-1">{errors.pincode}</p>}
+                    {errors.permanentAddress && <p className="text-red-500 text-xs mt-1">{errors.permanentAddress}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Fixed District: Ratnagiri */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        जिल्हा (मर्यादित) <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="permanentDistrict"
+                        value={formData.permanentDistrict || 'रत्नागिरी'}
+                        disabled
+                        className="w-full px-3.5 py-2.5 rounded-card border border-saffron/30 bg-saffron/5 text-charcoal font-bold text-sm outline-none cursor-not-allowed"
+                      >
+                        <option value="रत्नागिरी">रत्नागिरी (Ratnagiri)</option>
+                      </select>
+                    </div>
+
+                    {/* Ratnagiri Talukas */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        तालुका <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="permanentTalukaId"
+                        value={formData.permanentTalukaId}
+                        onChange={handlePermanentTalukaSelect}
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.permanentTalukaId
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                          }`}
+                      >
+                        <option value="">तालुका निवडा</option>
+                        {(ratnagiriData?.talukas || []).map((t) => {
+                          const optVal = t.id ? String(t.id) : t.nameEn;
+                          return (
+                            <option key={optVal} value={optVal}>
+                              {t.nameMr} ({t.nameEn})
+                            </option>
+                          );
+                        })}
+                      </select>
+                      {errors.permanentTalukaId && <p className="text-red-500 text-xs mt-1">{errors.permanentTalukaId}</p>}
+                    </div>
+
+                    {/* Village / City under Selected Ratnagiri Taluka */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        गाव / शहर <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="permanentVillage"
+                        value={talukaVillages.some(v => v.nameMr === formData.permanentVillage) ? formData.permanentVillage : (formData.permanentVillage ? '__custom__' : '')}
+                        onChange={(e) => {
+                          if (e.target.value === '__custom__') {
+                            setFormData(prev => ({ ...prev, permanentVillage: '' }));
+                          } else {
+                            handlePermanentVillageSelect(e);
+                          }
+                        }}
+                        disabled={!formData.permanentTalukaId}
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.permanentVillage
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                          }`}
+                      >
+                        <option value="">गाव / शहर निवडा</option>
+                        {talukaVillages.map((v) => (
+                          <option key={v.nameEn} value={v.nameMr}>
+                            {v.nameMr} ({v.nameEn})
+                          </option>
+                        ))}
+                      </select>
+                      {errors.permanentVillage && <p className="text-red-500 text-xs mt-1">{errors.permanentVillage}</p>}
+                    </div>
+
+                    {/* Ratnagiri Pincode */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        पिनकोड <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="permanentPincode"
+                        value={formData.permanentPincode}
+                        onChange={handleInputChange}
+                        disabled={!formData.permanentTalukaId}
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.permanentPincode
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                          }`}
+                      >
+                        <option value="">पिनकोड निवडा</option>
+                        {talukaPincodes.map((pin) => (
+                          <option key={pin} value={pin}>{pin}</option>
+                        ))}
+                      </select>
+                      {errors.permanentPincode && <p className="text-red-500 text-xs mt-1">{errors.permanentPincode}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. सध्याचा पत्ता (Current Address - Exclusively Pune District + Suburb) */}
+                <div className="p-4 sm:p-5 rounded-card-lg border-2 border-saffron/20 bg-white space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-saffron/15 pb-2.5">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                        २. सध्याचा पत्ता (पुणे जिल्हा व उपनगर)
+                      </h3>
+                      <p className="text-[11px] text-charcoal/65">
+                        सध्याचा पत्ता फक्त पुणे जिल्ह्यापुरता मर्यादित आहे (जिल्हा → उपनगर → पिनकोड)
+                      </p>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full bg-saffron/15 text-saffron-dark text-[11px] font-bold">
+                      पुणे जिल्हा मर्यादित
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                      सध्याचा पत्ता (घर क्र. / सोसायटी / रस्ता) <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      name="currentAddress"
+                      value={formData.currentAddress}
+                      onChange={handleInputChange}
+                      rows={2}
+                      placeholder="उदा. फ्लॅट क्र. १०२, शिवशक्ती सोसायटी, कोथरूड"
+                      className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 resize-none transition-all ${errors.currentAddress
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                          : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                        }`}
+                    />
+                    {errors.currentAddress && <p className="text-red-500 text-xs mt-1">{errors.currentAddress}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Fixed District: Pune */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        जिल्हा (मर्यादित) <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="currentDistrict"
+                        value={formData.currentDistrict || 'पुणे'}
+                        disabled
+                        className="w-full px-3.5 py-2.5 rounded-card border border-saffron/30 bg-saffron/5 text-charcoal font-bold text-sm outline-none cursor-not-allowed"
+                      >
+                        <option value="पुणे">पुणे (Pune)</option>
+                      </select>
+                    </div>
+
+                    {/* Pune / PCMC Suburb */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        उपनगर (Suburb) <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="currentSuburb"
+                        value={formData.currentSuburb}
+                        onChange={handleCurrentSuburbSelect}
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.currentSuburb
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                          }`}
+                      >
+                        <option value="">उपनगर निवडा</option>
+                        {puneSuburbs.map((s) => (
+                          <option key={s.nameEn} value={s.nameMr}>
+                            {s.nameMr} ({s.nameEn})
+                          </option>
+                        ))}
+                      </select>
+                      {errors.currentSuburb && <p className="text-red-500 text-xs mt-1">{errors.currentSuburb}</p>}
+                    </div>
+
+                    {/* Pune Pincode */}
+                    <div>
+                      <label className="block text-xs font-bold text-charcoal/75 mb-1">
+                        पिनकोड <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="currentPincode"
+                        value={formData.currentPincode}
+                        onChange={handleInputChange}
+                        maxLength={6}
+                        inputMode="numeric"
+                        pattern="\d*"
+                        placeholder="उदा. 411038"
+                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 transition-all ${errors.currentPincode
+                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                            : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'
+                          }`}
+                      />
+                      {errors.currentPincode && <p className="text-red-500 text-xs mt-1">{errors.currentPincode}</p>}
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* STEP 3: अतिरिक्त माहिती */}
             {currentStep === 3 && (
@@ -1946,10 +2111,16 @@ export const MemberRegistrationPage: React.FC = () => {
                         {paymentMode} - {upiTxnId || 'सादर केले'}
                       </span>
                     </div> */}
-                    <div>
-                      <span className="text-charcoal/50 font-semibold block">पत्ता:</span>
+                    <div className="sm:col-span-2">
+                      <span className="text-charcoal/50 font-semibold block">कायमचा पत्ता (रत्नागिरी):</span>
                       <span className="font-bold text-charcoal/90">
-                        {formData.currentAddress || '-'}, {selectedTaluka?.nameMr || ''}, {selectedDistrict?.nameMr || ''}, {selectedState?.nameMr || ''} - {formData.pincode}
+                        {formData.permanentAddress || '-'}, {formData.permanentVillage || '-'}, ता. {formData.permanentTaluka || '-'}, जि. {formData.permanentDistrict || 'रत्नागिरी'} - {formData.permanentPincode || '-'}
+                      </span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-charcoal/50 font-semibold block">सध्याचा पत्ता (पुणे):</span>
+                      <span className="font-bold text-charcoal/90">
+                        {formData.currentAddress || '-'}, उपनगर: {formData.currentSuburb || '-'}, जि. {formData.currentDistrict || 'पुणे'} - {formData.currentPincode || formData.pincode || '-'}
                       </span>
                     </div>
                   </div>
@@ -2108,15 +2279,18 @@ export const MemberRegistrationPage: React.FC = () => {
                     <h4 className="text-xs sm:text-sm font-bold text-saffron-dark">२. पत्ता व रहिवासी माहिती (Address Details)</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">तालुका / जिल्हा / राज्य:</span> <span className="font-bold text-charcoal">{selectedTaluka?.nameMr || selectedTaluka?.nameEn || ''}, {selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
-                    {selectedArea && (
-                      <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">भाग / एरिया:</span> <span className="font-bold text-charcoal">{selectedArea.nameMr || selectedArea.nameEn}</span></div>
-                    )}
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पिनकोड:</span> <span className="font-bold text-charcoal">{formData.pincode || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.currentAddress || '-'}</span></div>
-                    {formData.permanentAddress && (
-                      <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">कायमचा पत्ता:</span> <span className="font-bold text-charcoal">{formData.permanentAddress}</span></div>
-                    )}
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3">
+                      <span className="text-charcoal/60 block text-[11px]">कायमचा पत्ता (रत्नागिरी जिल्हा):</span>
+                      <span className="font-bold text-charcoal">
+                        {formData.permanentAddress || '-'}, मु. पो. {formData.permanentVillage || '-'}, ता. {formData.permanentTaluka || selectedTaluka?.nameMr || '-'}, जि. {formData.permanentDistrict || 'रत्नागिरी'} - {formData.permanentPincode || '-'}
+                      </span>
+                    </div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3">
+                      <span className="text-charcoal/60 block text-[11px]">सध्याचा पत्ता (पुणे जिल्हा):</span>
+                      <span className="font-bold text-charcoal">
+                        {formData.currentAddress || '-'}, उपनगर: {formData.currentSuburb || '-'}, जि. {formData.currentDistrict || 'पुणे'} - {formData.currentPincode || formData.pincode || '-'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -2278,6 +2452,12 @@ export const MemberRegistrationPage: React.FC = () => {
       <ConfirmModal
         state={confirmState}
         onClose={closeConfirm}
+      />
+
+      {/* Registration Success Popup Modal */}
+      <RegistrationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
       />
 
     </div>

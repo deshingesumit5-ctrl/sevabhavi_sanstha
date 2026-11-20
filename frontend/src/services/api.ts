@@ -9,7 +9,8 @@ export const getApiBaseUrl = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl) return envUrl;
   const host = getHost();
-  if (host === 'localhost' || host === '127.0.0.1') {
+  const port = typeof window !== 'undefined' && window.location ? window.location.port : '';
+  if ((host === 'localhost' || host === '127.0.0.1') && port !== '5173') {
     return 'http://localhost:8080/api';
   }
   return '/api';
@@ -90,6 +91,55 @@ export interface BloodGroup {
   labelMr: string;
 }
 
+export interface RatnagiriVillage {
+  nameMr: string;
+  nameEn: string;
+  pincode: string;
+}
+
+export interface RatnagiriTalukaLookup {
+  id?: number | null;
+  nameMr: string;
+  nameEn: string;
+  villages: RatnagiriVillage[];
+  pincodes: string[];
+}
+
+export interface RatnagiriLookupResponse {
+  stateId?: number | null;
+  stateNameMr: string;
+  stateNameEn: string;
+  districtId?: number | null;
+  districtNameMr: string;
+  districtNameEn: string;
+  talukas: RatnagiriTalukaLookup[];
+  allPincodes: string[];
+}
+
+export interface PuneSuburbItem {
+  nameMr: string;
+  nameEn: string;
+  pincode: string;
+}
+
+export interface PuneSuburbsResponse {
+  stateId?: number | null;
+  districtId?: number | null;
+  districtNameMr: string;
+  districtNameEn: string;
+  suburbs: PuneSuburbItem[];
+}
+
+export interface MatrimonyQuotaData {
+  profileType: string;
+  packageType: string;
+  packageAmount: number;
+  biodataLimit: number;
+  usedViews: number;
+  remainingViews: number;
+  viewedProfileIds: number[];
+}
+
 export interface MaritalStatus {
   id: number;
   code: string;
@@ -121,6 +171,13 @@ export interface MemberRegistrationData {
   taluka: Taluka;
   area?: Area | null;
   pincode: string;
+  permanentDistrict?: string | null;
+  permanentTaluka?: string | null;
+  permanentVillage?: string | null;
+  permanentPincode?: string | null;
+  currentDistrict?: string | null;
+  currentSuburb?: string | null;
+  currentPincode?: string | null;
   memberType: string;
   idProofNumber: string | null;
   expectations: string | null;
@@ -144,6 +201,8 @@ export interface MarriageRegistrationData {
   gotra: string | null;
   manglik: string;
   city: string;
+  taluka?: Taluka | null;
+  talukaName?: string | null;
   district: District;
   state: State;
   mobile: string;
@@ -173,6 +232,7 @@ export interface MarriageRegistrationData {
   passwordHash?: string;
   packageType?: string;
   packageAmount?: number;
+  biodataLimit?: number;
   subscriptionDurationMonths?: number;
   subscriptionStartDate?: string | null;
   subscriptionEndDate?: string | null;
@@ -197,6 +257,8 @@ export interface MatrimonyPublicProfile {
   occupationType: string;
   designation: string | null;
   city: string;
+  talukaId?: number | null;
+  talukaNameMr?: string | null;
   districtNameMr: string | null;
   stateNameMr: string | null;
   mainPhotoUrl: string | null;
@@ -209,6 +271,8 @@ export interface MatrimonyFullProfile extends MatrimonyPublicProfile {
   fullName: string;
   birthDate: string;
   gotra: string | null;
+  talukaId?: number | null;
+  talukaNameMr?: string | null;
   districtId: number;
   stateId: number;
   mobile?: string;
@@ -230,6 +294,9 @@ export interface MatrimonyFullProfile extends MatrimonyPublicProfile {
   fullPhotoUploaded: boolean;
   subscriptionActive: boolean;
   subscriptionEndDate: string | null;
+  biodataLimit?: number | null;
+  usedViews?: number | null;
+  remainingViews?: number | null;
 }
 
 export interface MatrimonyFilterParams {
@@ -241,6 +308,7 @@ export interface MatrimonyFilterParams {
   occupationType?: string;
   stateId?: number;
   districtId?: number;
+  talukaId?: number;
   city?: string;
   sort?: string;
 }
@@ -256,6 +324,10 @@ export interface MatrimonyAuthResponse {
   subscriptionEndDate: string | null;
   mainPhotoUrl: string | null;
   role: string;
+  packageType?: string;
+  biodataLimit?: number;
+  usedViews?: number;
+  remainingViews?: number;
 }
 
 
@@ -284,6 +356,7 @@ export interface DonationRegistrationData {
   email?: string;
   birthDate?: string;
   gender?: string;
+  panNumber?: string | null;
   address: string;
   city: string;
   taluka?: Taluka;
@@ -470,10 +543,27 @@ export const invalidateCache = (key?: string): void => {
   else cacheStore.clear();
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await sleep(700 * (attempt + 1));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function cachedFetch<T>(key: string, fetchFn: () => Promise<T>, forceRefresh = false): Promise<T> {
   if (!forceRefresh && cacheStore.has(key)) {
     // Return cached data immediately, revalidate silently in background
-    fetchFn().then(fresh => cacheStore.set(key, fresh)).catch(() => {});
+    fetchFn().then(fresh => cacheStore.set(key, fresh)).catch(() => { });
     return cacheStore.get(key) as T;
   }
 
@@ -481,7 +571,7 @@ async function cachedFetch<T>(key: string, fetchFn: () => Promise<T>, forceRefre
     return inFlightRequests.get(key) as Promise<T>;
   }
 
-  const promise = fetchFn()
+  const promise = withRetry(fetchFn)
     .then(data => {
       cacheStore.set(key, data);
       return data;
@@ -595,6 +685,22 @@ export const api = {
     });
   },
 
+  getRatnagiriLocation: async (): Promise<RatnagiriLookupResponse> => {
+    return cachedFetch('lookup_ratnagiri', async () => {
+      const res = await fetch(`${BASE_URL}/lookups/ratnagiri`);
+      if (!res.ok) throw new Error('रत्नागिरी जिल्हा माहिती लोड करता आली नाही');
+      return res.json();
+    });
+  },
+
+  getPuneSuburbs: async (): Promise<PuneSuburbsResponse> => {
+    return cachedFetch('lookup_pune_suburbs', async () => {
+      const res = await fetch(`${BASE_URL}/lookups/pune-suburbs`);
+      if (!res.ok) throw new Error('पुणे उपनगर यादी लोड करता आली नाही');
+      return res.json();
+    });
+  },
+
   getBloodGroups: async (): Promise<BloodGroup[]> => {
     return cachedFetch('blood_groups', async () => {
       const res = await fetch(`${BASE_URL}/lookups/blood-groups`);
@@ -679,7 +785,7 @@ export const api = {
     });
     if (!res.ok) throw new Error('Failed to update member status');
     const updated = await res.json();
-    
+
     // Mutate cache directly
     const cached = getCachedData<MemberRegistrationData[]>('all_members');
     if (cached) {
@@ -787,7 +893,7 @@ export const api = {
   createNews: async (data: { title: string; content: string; category?: string }): Promise<NewsData> => {
     const res = await fetch(`${BASE_URL}/news`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         ...getAdminHeaders()
       },
@@ -800,7 +906,7 @@ export const api = {
   },
 
   deleteNews: async (id: number): Promise<void> => {
-    const res = await fetch(`${BASE_URL}/news/${id}`, { 
+    const res = await fetch(`${BASE_URL}/news/${id}`, {
       method: 'DELETE',
       headers: {
         ...getAdminHeaders()
@@ -868,7 +974,7 @@ export const api = {
 
   deleteInquiry: async (id: number): Promise<void> => {
     try {
-      await fetch(`${BASE_URL}/inquiries/${id}`, { 
+      await fetch(`${BASE_URL}/inquiries/${id}`, {
         method: 'DELETE',
         headers: {
           ...getAdminHeaders()
@@ -1002,6 +1108,10 @@ export const api = {
     if (cached) {
       setCachedData('all_payments', cached.map(p => p.id === id ? { ...p, status: status, rejectionReason: reason || p.rejectionReason } : p));
     }
+    invalidateCache('all_members');
+    invalidateCache('all_marriages');
+    invalidateCache('all_shibirs');
+    invalidateCache('all_donations');
     return data;
   },
 
@@ -1144,8 +1254,9 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('मसुदा जतन करणे अयशस्वी.');
-    return res.json();
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'मसुदा जतन करणे अयशस्वी.');
+    return json;
   },
 
   submitDonationRegistration: async (data: any): Promise<DonationRegistrationData> => {
@@ -1154,9 +1265,10 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!res.ok) throw new Error('देणगी नोंदणी जतन करणे अयशस्वी.');
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.error || 'देणगी नोंदणी जतन करणे अयशस्वी.');
     invalidateCache('all_donations');
-    return res.json();
+    return json;
   },
 
   verifyDonationPayment: async (data: { receiptNumber: string; gatewayReference?: string; transactionId?: string; paymentStatus?: string; paymentMethod?: string }): Promise<DonationRegistrationData> => {
@@ -1213,6 +1325,7 @@ export const api = {
     if (filter.occupationType && filter.occupationType !== 'सर्व') params.set('occupationType', filter.occupationType);
     if (filter.stateId) params.set('stateId', filter.stateId.toString());
     if (filter.districtId) params.set('districtId', filter.districtId.toString());
+    if (filter.talukaId) params.set('talukaId', filter.talukaId.toString());
     if (filter.city && filter.city !== 'सर्व') params.set('city', filter.city);
     if (filter.sort) params.set('sort', filter.sort);
 
@@ -1242,6 +1355,14 @@ export const api = {
     const headers: Record<string, string> = { ...getMatrimonyHeaders() };
     const res = await fetch(`${BASE_URL}/matrimony/profiles/${id}/similar?limit=${limit}`, { headers });
     if (!res.ok) return [];
+    return res.json();
+  },
+
+  getMatrimonyQuota: async (): Promise<MatrimonyQuotaData | null> => {
+    const headers: Record<string, string> = { ...getMatrimonyHeaders() };
+    if (!headers.Authorization) return null;
+    const res = await fetch(`${BASE_URL}/matrimony/view-quota`, { headers });
+    if (!res.ok) return null;
     return res.json();
   },
 

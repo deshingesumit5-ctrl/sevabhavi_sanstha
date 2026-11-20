@@ -14,12 +14,13 @@ public class MatrimonyFilterDTO {
     private String occupationType;
     private Integer stateId;
     private Integer districtId;
+    private Integer talukaId;
     private String city;
     private String sort; // 'newest', 'ageAsc', 'ageDesc'
 
     public MatrimonyFilterDTO(String profileType, Integer minAge, Integer maxAge, String caste,
                               String educationLevel, String occupationType, Integer stateId,
-                              Integer districtId, String city, String sort) {
+                              Integer districtId, Integer talukaId, String city, String sort) {
         this.profileType = profileType;
         this.minAge = minAge;
         this.maxAge = maxAge;
@@ -28,6 +29,7 @@ public class MatrimonyFilterDTO {
         this.occupationType = occupationType;
         this.stateId = stateId;
         this.districtId = districtId;
+        this.talukaId = talukaId;
         this.city = city;
         this.sort = sort;
     }

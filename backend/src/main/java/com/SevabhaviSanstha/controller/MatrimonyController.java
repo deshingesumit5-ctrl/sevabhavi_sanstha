@@ -199,6 +199,18 @@ public class MatrimonyController {
     }
 
     /**
+     * 8.5 Get Logged-in User Biodata View Quota
+     */
+    @GetMapping("/view-quota")
+    public ResponseEntity<?> getViewerQuota(HttpServletRequest request) {
+        Integer currentUserId = extractCurrentUserId(request);
+        if (currentUserId == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "कृपया प्रथम लॉगिन करा."));
+        }
+        return ResponseEntity.ok(marriageRegistrationService.getViewerQuota(currentUserId));
+    }
+
+    /**
      * 9. Photo Upload Helper Endpoint
      */
     @PostMapping(value = "/upload-photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

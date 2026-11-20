@@ -139,7 +139,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/matrimony/profiles", "/api/matrimony/profiles/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/matrimony/login", "/api/matrimony/reset-password").permitAll()
-                        .requestMatchers("/api/matrimony/profile-full/**", "/api/matrimony/favorites", "/api/matrimony/favorites/**").authenticated()
+                        .requestMatchers("/api/matrimony/profile-full/**", "/api/matrimony/favorites", "/api/matrimony/favorites/**", "/api/matrimony/view-quota").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/marriage-registration").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/marriage-registration/**").authenticated()
 

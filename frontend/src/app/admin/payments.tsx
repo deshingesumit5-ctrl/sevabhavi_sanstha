@@ -50,7 +50,7 @@ export const AdminPaymentsPage: React.FC = () => {
   const initialCached = api.getCachedPayments();
   const [payments, setPayments] = useState<PaymentData[]>(initialCached || []);
   const [loading, setLoading] = useState<boolean>(!initialCached);
-  const [paymentCategoryTab, setPaymentCategoryTab] = useState<'marriage' | 'member' | 'shibir'>('marriage');
+  const [paymentCategoryTab, setPaymentCategoryTab] = useState<'marriage' | 'member' | 'shibir' | 'donation'>('marriage');
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<string>('सर्व');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,11 +90,12 @@ export const AdminPaymentsPage: React.FC = () => {
 
   const loadPayments = async () => {
     try {
-      const [allPay, allMem, allMar, allShi] = await Promise.all([
+      const [allPay, allMem, allMar, allShi, allDon] = await Promise.all([
         api.getAllPayments().catch(() => []),
         api.getAllMembers().catch(() => []),
         api.getAllMarriages().catch(() => []),
         api.getAllShibirs().catch(() => []),
+        api.getAllDonations().catch(() => []),
       ]);
 
       const enriched = allPay.map((p) => {
@@ -112,6 +113,12 @@ export const AdminPaymentsPage: React.FC = () => {
             }
           } else if (regType === 'SHIBIR' || (p.membershipType || '').toLowerCase().includes('shibir')) {
             const found = allShi.find(s => s.id === regId);
+            if (found) {
+              name = found.fullName;
+              mobile = found.mobile;
+            }
+          } else if (regType === 'DONATION' || (p.membershipType || '').toLowerCase().includes('donation')) {
+            const found = allDon.find(d => d.id === regId);
             if (found) {
               name = found.fullName;
               mobile = found.mobile;
@@ -234,16 +241,25 @@ export const AdminPaymentsPage: React.FC = () => {
     return regType === 'MARRIAGE' || memType.includes('marriage') || memType.includes('विवाह');
   }).length;
 
-  const memberPaymentsCount = payments.filter((p) => {
-    const regType = (p.registrationType || '').toUpperCase();
-    const memType = (p.membershipType || '').toLowerCase();
-    return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (regType !== 'MARRIAGE' && regType !== 'SHIBIR' && !memType.includes('marriage') && !memType.includes('shibir'));
-  }).length;
-
   const shibirPaymentsCount = payments.filter((p) => {
     const regType = (p.registrationType || '').toUpperCase();
     const memType = (p.membershipType || '').toLowerCase();
     return regType === 'SHIBIR' || memType.includes('shibir') || memType.includes('शिबीर');
+  }).length;
+
+  const donationPaymentsCount = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    return regType === 'DONATION' || memType.includes('donation') || memType.includes('देणगी');
+  }).length;
+
+  const memberPaymentsCount = payments.filter((p) => {
+    const regType = (p.registrationType || '').toUpperCase();
+    const memType = (p.membershipType || '').toLowerCase();
+    return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (
+      regType !== 'MARRIAGE' && regType !== 'SHIBIR' && regType !== 'DONATION' &&
+      !memType.includes('marriage') && !memType.includes('shibir') && !memType.includes('donation')
+    );
   }).length;
 
   const sectionFilteredPayments = payments.filter((p) => {
@@ -253,8 +269,13 @@ export const AdminPaymentsPage: React.FC = () => {
       return regType === 'MARRIAGE' || memType.includes('marriage') || memType.includes('विवाह');
     } else if (paymentCategoryTab === 'shibir') {
       return regType === 'SHIBIR' || memType.includes('shibir') || memType.includes('शिबीर');
+    } else if (paymentCategoryTab === 'donation') {
+      return regType === 'DONATION' || memType.includes('donation') || memType.includes('देणगी');
     } else {
-      return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (regType !== 'MARRIAGE' && regType !== 'SHIBIR' && !memType.includes('marriage') && !memType.includes('shibir'));
+      return regType === 'MEMBER' || memType === 'annual' || memType === 'lifetime' || (
+        regType !== 'MARRIAGE' && regType !== 'SHIBIR' && regType !== 'DONATION' &&
+        !memType.includes('marriage') && !memType.includes('shibir') && !memType.includes('donation')
+      );
     }
   });
 
@@ -690,6 +711,22 @@ export const AdminPaymentsPage: React.FC = () => {
                 paymentCategoryTab === 'shibir' ? 'bg-white/20 text-white' : 'bg-saffron/10 text-saffron-dark'
               }`}>
                 {shibirPaymentsCount}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setPaymentCategoryTab('donation')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                paymentCategoryTab === 'donation'
+                  ? 'bg-saffron text-white shadow-md'
+                  : 'bg-cream/60 text-charcoal/70 hover:bg-amber-100/60 hover:text-saffron-dark'
+              }`}
+            >
+              <span>🎁 देणगी पेमेंट्स</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                paymentCategoryTab === 'donation' ? 'bg-white/20 text-white' : 'bg-saffron/10 text-saffron-dark'
+              }`}>
+                {donationPaymentsCount}
               </span>
             </button>
           </div>

@@ -1,7 +1,10 @@
 package com.SevabhaviSanstha.service_impl;
 
+import com.SevabhaviSanstha.entity.District;
 import com.SevabhaviSanstha.entity.MemberRegistration;
-import com.SevabhaviSanstha.repository.MemberRegistrationRepository;
+import com.SevabhaviSanstha.entity.State;
+import com.SevabhaviSanstha.entity.Taluka;
+import com.SevabhaviSanstha.repository.*;
 import com.SevabhaviSanstha.service.MemberRegistrationService;
 import com.SevabhaviSanstha.util.PdfFontUtil;
 import com.lowagie.text.*;
@@ -22,8 +25,72 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
     @Autowired
     private MemberRegistrationRepository memberRegistrationRepository;
 
+    @Autowired
+    private StateRepository stateRepository;
+
+    @Autowired
+    private DistrictRepository districtRepository;
+
+    @Autowired
+    private TalukaRepository talukaRepository;
+
+    @Autowired
+    private AreaRepository areaRepository;
+
     @Override
     public MemberRegistration registerMember(MemberRegistration registration) {
+        if (registration.getPermanentDistrict() != null && !registration.getPermanentDistrict().isBlank()) {
+            String permDist = registration.getPermanentDistrict().toLowerCase();
+            if (!permDist.contains("ratnagiri") && !permDist.contains("रत्नागिरी")) {
+                throw new IllegalArgumentException("कायमचा पत्ता फक्त रत्नागिरी जिल्ह्यापुरता मर्यादित आहे.");
+            }
+        }
+        if (registration.getCurrentDistrict() != null && !registration.getCurrentDistrict().isBlank()) {
+            String currDist = registration.getCurrentDistrict().toLowerCase();
+            if (!currDist.contains("pune") && !currDist.contains("पुणे")) {
+                throw new IllegalArgumentException("सध्याचा पत्ता फक्त पुणे जिल्ह्यापुरता मर्यादित आहे.");
+            }
+        }
+
+        State mh = stateRepository.findByNameEnIgnoreCase("Maharashtra").orElse(null);
+        if (registration.getState() != null && registration.getState().getId() != null) {
+            stateRepository.findById(registration.getState().getId()).ifPresent(registration::setState);
+        } else if (mh != null) {
+            registration.setState(mh);
+        }
+
+        if (registration.getDistrict() != null && registration.getDistrict().getId() != null) {
+            districtRepository.findById(registration.getDistrict().getId()).ifPresent(registration::setDistrict);
+        } else if (mh != null) {
+            districtRepository.findByStateIdAndNameEnIgnoreCase(mh.getId(), "Ratnagiri")
+                    .ifPresent(registration::setDistrict);
+        }
+
+        if (registration.getTaluka() != null && registration.getTaluka().getId() != null) {
+            talukaRepository.findById(registration.getTaluka().getId()).ifPresent(registration::setTaluka);
+        } else if (registration.getDistrict() != null && registration.getPermanentTaluka() != null) {
+            List<Taluka> distTalukas = talukaRepository.findByDistrictId(registration.getDistrict().getId());
+            for (Taluka t : distTalukas) {
+                if (registration.getPermanentTaluka().equalsIgnoreCase(t.getNameMr())
+                        || registration.getPermanentTaluka().equalsIgnoreCase(t.getNameEn())) {
+                    registration.setTaluka(t);
+                    break;
+                }
+            }
+            if (registration.getTaluka() == null && !distTalukas.isEmpty()) {
+                registration.setTaluka(distTalukas.get(0));
+            }
+        }
+
+        if (registration.getArea() != null && registration.getArea().getId() != null) {
+            areaRepository.findById(registration.getArea().getId()).ifPresent(registration::setArea);
+        }
+
+        if ((registration.getPincode() == null || registration.getPincode().isBlank())
+                && registration.getPermanentPincode() != null) {
+            registration.setPincode(registration.getPermanentPincode());
+        }
+
         registration.setApprovalStatus("PENDING");
         return memberRegistrationRepository.save(registration);
     }
@@ -148,15 +215,33 @@ public class MemberRegistrationServiceImpl implements MemberRegistrationService 
             sec2.setWidths(new float[]{22f, 28f, 22f, 28f});
             sec2.setSpacingAfter(6);
 
-            String talukaDist = (reg.getTaluka() != null ? reg.getTaluka().getNameMr() + ", " : "")
-                    + (reg.getDistrict() != null ? reg.getDistrict().getNameMr() + ", " : "")
-                    + (reg.getState() != null ? reg.getState().getNameMr() : "");
+            String permDistrictStr = reg.getPermanentDistrict() != null && !reg.getPermanentDistrict().isBlank()
+                    ? reg.getPermanentDistrict()
+                    : (reg.getDistrict() != null ? reg.getDistrict().getNameMr() : "रत्नागिरी");
+            String permTalukaStr = reg.getPermanentTaluka() != null && !reg.getPermanentTaluka().isBlank()
+                    ? reg.getPermanentTaluka()
+                    : (reg.getTaluka() != null ? reg.getTaluka().getNameMr() : "-");
+            String permVillageStr = reg.getPermanentVillage() != null && !reg.getPermanentVillage().isBlank()
+                    ? reg.getPermanentVillage() : "-";
+            String permPinStr = reg.getPermanentPincode() != null && !reg.getPermanentPincode().isBlank()
+                    ? reg.getPermanentPincode()
+                    : (reg.getPincode() != null ? reg.getPincode() : "-");
 
-            addGridRow(sec2, "तालुका / जिल्हा / राज्य:", talukaDist, "पिनकोड:", reg.getPincode() != null ? reg.getPincode() : "-", labelFont, valueFont, lightBorder);
-            addGridFullRow(sec2, "सध्याचा पत्ता:", reg.getCurrentAddress(), labelFont, valueFont, lightBorder);
+            addGridRow(sec2, "कायमचा जिल्हा / तालुका:", permDistrictStr + ", " + permTalukaStr, "कायमचे गाव / पिनकोड:", permVillageStr + " - " + permPinStr, labelFont, valueFont, lightBorder);
             if (reg.getPermanentAddress() != null && !reg.getPermanentAddress().isBlank()) {
                 addGridFullRow(sec2, "कायमचा पत्ता:", reg.getPermanentAddress(), labelFont, valueFont, lightBorder);
             }
+
+            String currDistrictStr = reg.getCurrentDistrict() != null && !reg.getCurrentDistrict().isBlank()
+                    ? reg.getCurrentDistrict() : "पुणे";
+            String currSuburbStr = reg.getCurrentSuburb() != null && !reg.getCurrentSuburb().isBlank()
+                    ? reg.getCurrentSuburb()
+                    : (reg.getArea() != null ? reg.getArea().getNameMr() : "-");
+            String currPinStr = reg.getCurrentPincode() != null && !reg.getCurrentPincode().isBlank()
+                    ? reg.getCurrentPincode() : "-";
+
+            addGridRow(sec2, "सध्याचा जिल्हा / उपनगर:", currDistrictStr + ", " + currSuburbStr, "सध्याचा पिनकोड:", currPinStr, labelFont, valueFont, lightBorder);
+            addGridFullRow(sec2, "सध्याचा पत्ता:", reg.getCurrentAddress(), labelFont, valueFont, lightBorder);
             boxCell.addElement(sec2);
 
             // 5. Section 3: अपेक्षा व संदेश (Expectations & Message)

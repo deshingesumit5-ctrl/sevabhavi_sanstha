@@ -27,6 +27,7 @@ public interface MarriageRegistrationService {
     // Matrimony Auth
     MatrimonyAuthResponseDTO loginMatrimonyUser(String identifier, String password);
     void resetMatrimonyPassword(String identifier, String newPassword);
+    MatrimonyQuotaDTO getViewerQuota(Integer userId);
 
     // Favourites
     boolean toggleFavorite(Integer userId, Integer profileId);

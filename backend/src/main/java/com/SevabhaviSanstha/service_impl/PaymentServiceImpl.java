@@ -249,9 +249,9 @@ public class PaymentServiceImpl implements PaymentService {
                                           BigDecimal amount, String membershipType, String paymentMode,
                                           String upiTxnId, MultipartFile file) throws Exception {
         boolean isCash = "Cash".equalsIgnoreCase(paymentMode) || "कॅश".equalsIgnoreCase(paymentMode);
-        if (!isCash && (upiTxnId == null || upiTxnId.trim().isEmpty())) {
-            throw new IllegalArgumentException("UPI ट्रान्झॅक्शन आयडी आवश्यक आहे.");
-        }
+        String resolvedTxnId = (upiTxnId != null && !upiTxnId.trim().isEmpty())
+                ? upiTxnId.trim()
+                : (isCash ? "CASH-" + System.currentTimeMillis() : "TXN-" + System.currentTimeMillis());
 
         seedInitialDataIfEmpty();
 
@@ -333,7 +333,7 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setAmount(actualAmount);
         payment.setMembershipType(membershipType != null ? membershipType : "annual");
         payment.setPaymentMode(paymentMode != null ? paymentMode : (isCash ? "Cash" : "GPay"));
-        payment.setUpiTxnId(upiTxnId != null ? upiTxnId.trim() : (isCash ? "CASH-" + System.currentTimeMillis() : ""));
+        payment.setUpiTxnId(resolvedTxnId);
         payment.setScreenshotUrl(screenshotUrl);
         payment.setPaymentDate(LocalDateTime.now());
         payment.setStatus(isCash ? "पडताळलेले" : "सादर केले");

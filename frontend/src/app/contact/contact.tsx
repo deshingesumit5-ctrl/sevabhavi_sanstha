@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
-import { Phone, Mail, MapPin, Send, Pencil, Trash2, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, Pencil, Trash2, CheckCircle2, Globe, ExternalLink } from 'lucide-react';
 import { uploadImage, imageUrl, deleteImage, fetchByCategory, type GalleryImage } from '../../services/galleryApi';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../services/api';
@@ -370,6 +370,34 @@ export const ContactPage: React.FC = () => {
             </form>
           </div>
 
+        </div>
+      </section>
+
+      {/* 3. Official Website Link Section at Bottom */}
+      <section className="w-full px-4 max-w-5xl mx-auto section-gap-top mb-10">
+        <div className="bg-white rounded-card-lg border border-saffron/20 shadow-soft p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-saffron/10 border border-saffron/20 flex items-center justify-center text-saffron shrink-0">
+              <Globe size={22} />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-maroon" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+                संस्थेचे अधिकृत संकेतस्थळ (Official Website)
+              </h3>
+              <p className="text-xs text-charcoal/70 font-body">
+                संस्थेच्या सर्व उपक्रमांची आणि योजनांची सविस्तर माहिती पाहण्यासाठी भेट द्या.
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://dmsevabhavi.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-saffron hover:bg-saffron-dark text-white font-bold text-sm rounded-full shadow-md shadow-saffron/20 transition-all shrink-0"
+          >
+            <span>https://dmsevabhavi.com</span>
+            <ExternalLink size={15} />
+          </a>
         </div>
       </section>
 

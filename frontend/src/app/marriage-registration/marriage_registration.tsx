@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ImagePlaceholder from '../../components/ImagePlaceholder';
 import StepIndicator from '../../components/StepIndicator';
 import { ArrowLeft, ArrowRight, CheckCircle2, Printer, Loader2, ShieldCheck, Pencil, Trash2, QrCode, Smartphone, Upload, Download, Eye, EyeOff, Gift, RotateCcw, X, FileText } from 'lucide-react';
-import { api, BASE_URL, type State, type District, type City, type BloodGroup, type MaritalStatus, type Religion, type Height, type PaymentSettingResponse } from '../../services/api';
+import { api, BASE_URL, type State, type District, type Taluka, type City, type BloodGroup, type MaritalStatus, type Religion, type Height, type PaymentSettingResponse } from '../../services/api';
 import { uploadImage, imageUrl, deleteImage, fetchByCategory, type GalleryImage } from '../../services/galleryApi';
 import { useAuth } from '../../context/AuthContext';
 import { validateMarriageForm, type MarriageFormErrors } from '../../utils/validations';
@@ -10,6 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
 import { buildUpiLink } from '../../utils/upi';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import RegistrationSuccessModal from '../../components/RegistrationSuccessModal';
 import DatePickerDropdown, { formatBirthDate } from '../../components/DatePickerDropdown';
 
 const DRAFT_KEY = "marriage_reg_draft";
@@ -34,7 +35,9 @@ export const MarriageRegistrationPage: React.FC = () => {
   // Lookups loaded from DB
   const [states, setStates] = useState<State[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [talukas, setTalukas] = useState<Taluka[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [customCityMode, setCustomCityMode] = useState<boolean>(false);
   const [bloodGroups, setBloodGroups] = useState<BloodGroup[]>([]);
   const [maritalStatuses, setMaritalStatuses] = useState<MaritalStatus[]>([]);
   const [religions, setReligions] = useState<Religion[]>([]);
@@ -48,54 +51,58 @@ export const MarriageRegistrationPage: React.FC = () => {
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(null);
   const BANNER_SECTION_KEY = 'marriage_registration_banner';
 
-  // Subscription Package State (3, 6, 12 months)
+  // Subscription Package State (500->10, 1000->20, 1500->40 biodatas)
   const packages = [
     {
-      id: '3_MONTHS',
+      id: 'PLAN_500',
       durationMonths: 3,
-      nameMr: '३ महिने',
-      amount: 300,
+      biodataLimit: 10,
+      nameMr: 'बेसिक प्लॅन (₹५००)',
+      amount: 500,
       badge: null,
       features: [
+        'कमाल १० बायोडाटा प्रोफाइल्स पाहण्याची मुभा',
+        'विरुध्द लिंगाची संपूर्ण माहिती व संपर्क',
         'प्रोफाइल सर्वांसाठी दिसेल',
         'आधारभूत शोध फिल्टर',
-        'मर्यादित संपर्क विनंत्या',
-        'ईमेल अलर्ट्स',
       ],
     },
     {
-      id: '6_MONTHS',
+      id: 'PLAN_1000',
       durationMonths: 6,
-      nameMr: '६ महिने',
-      amount: 500,
+      biodataLimit: 20,
+      nameMr: 'स्टँडर्ड प्लॅन (₹१,०००)',
+      amount: 1000,
       badge: 'सर्वाधिक लोकप्रिय',
       features: [
+        'कमाल २० बायोडाटा प्रोफाइल्स पाहण्याची मुभा',
+        'विरुध्द लिंगाची संपूर्ण माहिती व संपर्क',
         'प्रोफाइल सर्वांसाठी दिसेल',
-        'प्रगत शोध फिल्टर',
-        'अधिक संपर्क विनंत्या',
-        'प्राधान्याने परिणामात दिसेल',
-        'ईमेल / SMS अलर्ट',
+        'प्रगत शोध फिल्टर व प्राधान्य',
       ],
     },
     {
-      id: '12_MONTHS',
+      id: 'PLAN_1500',
       durationMonths: 12,
-      nameMr: '१२ महिने',
-      amount: 800,
+      biodataLimit: 40,
+      nameMr: 'प्रीमियम प्लॅन (₹१,५००)',
+      amount: 1500,
       badge: null,
       features: [
+        'कमाल ४० बायोडाटा प्रोफाइल्स पाहण्याची मुभा',
+        'विरुध्द लिंगाची संपूर्ण माहिती व संपर्क',
         'प्रोफाइल सर्वांसाठी दिसेल',
-        'सर्व प्रगत फिल्टर्स',
-        'अमर्यादित संपर्क विनंत्या',
-        'प्राधान्याने परिणामात दिसेल',
-        'ईमेल / SMS अलर्ट',
-        'विशेष सपोर्ट',
+        'सर्व प्रगत फिल्टर्स व विशेष सपोर्ट',
       ],
     },
   ];
 
-  const [packageType, setPackageType] = useState<'3_MONTHS' | '6_MONTHS' | '12_MONTHS'>(() => localDraft?.packageType ?? '6_MONTHS');
-  const [packageAmount, setPackageAmount] = useState<number>(() => localDraft?.packageAmount ?? 500);
+  const resolvedDraftPkgId = (['PLAN_500', 'PLAN_1000', 'PLAN_1500'].includes(localDraft?.packageType)
+    ? localDraft.packageType
+    : 'PLAN_500') as 'PLAN_500' | 'PLAN_1000' | 'PLAN_1500';
+  const resolvedDraftAmount = resolvedDraftPkgId === 'PLAN_1500' ? 1500 : resolvedDraftPkgId === 'PLAN_1000' ? 1000 : 500;
+  const [packageType, setPackageType] = useState<'PLAN_500' | 'PLAN_1000' | 'PLAN_1500'>(resolvedDraftPkgId);
+  const [packageAmount, setPackageAmount] = useState<number>(resolvedDraftAmount);
 
   // Password visibility
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -104,12 +111,13 @@ export const MarriageRegistrationPage: React.FC = () => {
   // Payment State
   const [paymentQrSettings, setPaymentQrSettings] = useState<PaymentSettingResponse | null>(null);
   const [paymentMode, setPaymentMode] = useState<string>(() => localDraft?.paymentMode ?? (isAdmin ? 'Cash' : 'GPay'));
-  const [cashAmountReceived, setCashAmountReceived] = useState<string>(() => localDraft?.cashAmountReceived ?? String(localDraft?.packageAmount ?? 500));
+  const [cashAmountReceived, setCashAmountReceived] = useState<string>(() => String(resolvedDraftAmount));
   const [upiTxnId] = useState<string>(() => localDraft?.upiTxnId ?? '');
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(() => localDraft?.screenshotPreview ?? null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [registrationComplete, setRegistrationComplete] = useState<boolean>(() => localDraft?.registrationComplete ?? false);
+  const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
   const [registeredId, setRegisteredId] = useState<number | null>(() => localDraft?.registeredId ?? null);
   useEffect(() => {
     fetchByCategory('banner')
@@ -159,6 +167,8 @@ export const MarriageRegistrationPage: React.FC = () => {
       city: '',
       stateId: '',
       districtId: '',
+      talukaId: '',
+      talukaName: '',
       mobile: '',
       email: '',
       password: '',
@@ -204,17 +214,11 @@ export const MarriageRegistrationPage: React.FC = () => {
       if (statesRes.status === 'fulfilled') {
         setStates(statesRes.value);
 
-        const mh = statesRes.value.find(s => s.nameEn === 'Maharashtra');
-        if (!formData.stateId && mh) {
-          setFormData((prev: any) => ({ ...prev, stateId: mh.id.toString() }));
-          try {
-            const mhDistricts = await api.getDistricts(mh.id);
-            setDistricts(mhDistricts);
-          } catch (err) {
-            console.error('Error loading districts:', err);
-          }
-        } else if (formData.stateId) {
+        if (formData.stateId) {
           api.getDistricts(Number(formData.stateId)).then(setDistricts).catch(console.error);
+        }
+        if (formData.districtId) {
+          api.getTalukas(Number(formData.districtId)).then(setTalukas).catch(console.error);
         }
       }
 
@@ -308,8 +312,11 @@ export const MarriageRegistrationPage: React.FC = () => {
 
   const handleStateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const stateIdVal = e.target.value;
-    setFormData((prev: any) => ({ ...prev, stateId: stateIdVal, districtId: '', city: '' }));
+    setFormData((prev: any) => ({ ...prev, stateId: stateIdVal, districtId: '', talukaId: '', talukaName: '', city: '' }));
     setDistricts([]);
+    setTalukas([]);
+    setCities([]);
+    setCustomCityMode(false);
     if (errors.stateId) {
       setErrors((prev: any) => ({ ...prev, stateId: undefined }));
     }
@@ -321,24 +328,41 @@ export const MarriageRegistrationPage: React.FC = () => {
         console.error('Error loading districts:', err);
       }
     }
-    api.getCities().then(setCities).catch(console.error);
   };
 
   const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const districtIdVal = e.target.value;
-    setFormData((prev: any) => ({ ...prev, districtId: districtIdVal, city: '' }));
+    setFormData((prev: any) => ({ ...prev, districtId: districtIdVal, talukaId: '', talukaName: '', city: '' }));
+    setTalukas([]);
+    setCities([]);
+    setCustomCityMode(false);
     if (errors.districtId) {
       setErrors((prev: any) => ({ ...prev, districtId: undefined }));
     }
     if (districtIdVal) {
       try {
-        const data = await api.getCities(Number(districtIdVal));
-        setCities(data);
+        const [tals, cits] = await Promise.all([
+          api.getTalukas(Number(districtIdVal)),
+          api.getCities(Number(districtIdVal)),
+        ]);
+        setTalukas(tals);
+        setCities(cits);
       } catch (err) {
-        console.error('Error loading cities:', err);
+        console.error('Error loading talukas/cities:', err);
       }
-    } else {
-      api.getCities().then(setCities).catch(console.error);
+    }
+  };
+
+  const handleTalukaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const talukaIdVal = e.target.value;
+    const tObj = talukas.find(t => t.id.toString() === talukaIdVal);
+    setFormData((prev: any) => ({
+      ...prev,
+      talukaId: talukaIdVal,
+      talukaName: tObj ? (tObj.nameMr || tObj.nameEn) : '',
+    }));
+    if (errors.talukaId) {
+      setErrors((prev: any) => ({ ...prev, talukaId: undefined }));
     }
   };
 
@@ -396,13 +420,15 @@ export const MarriageRegistrationPage: React.FC = () => {
     }
 
     if (paymentMode !== 'Cash' && !screenshotPreview && !screenshotFile) {
-      setDeclarationMsg('कृपया ५०० रुपयांच्या पेमेंटचा स्क्रीनशॉट अपलोड करा.');
+      setDeclarationMsg(`कृपया ₹${packageAmount} रुपयांच्या पेमेंटचा स्क्रीनशॉट अपलोड करा.`);
       setShowDeclarationBanner(true);
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const selectedPkg = packages.find(p => p.id === packageType) || packages[0];
+      const selectedTalObj = talukas.find(t => t.id === Number(formData.talukaId));
       const payload = {
         profileType,
         fullName: formData.fullName,
@@ -417,6 +443,8 @@ export const MarriageRegistrationPage: React.FC = () => {
         city: formData.city,
         state: { id: Number(formData.stateId) },
         district: { id: Number(formData.districtId) },
+        taluka: formData.talukaId ? { id: Number(formData.talukaId) } : null,
+        talukaName: selectedTalObj ? (selectedTalObj.nameMr || selectedTalObj.nameEn) : (formData.talukaName || null),
         mobile: formData.mobile,
         email: formData.email || null,
         parentMobile: formData.parentMobile,
@@ -450,31 +478,41 @@ export const MarriageRegistrationPage: React.FC = () => {
         fullPhotoUploaded: formData.fullPhotoUploaded,
         declaration: formData.declaration,
         passwordHash: formData.password || undefined,
-        packageType: packageType,
-        packageAmount: packageAmount,
-        subscriptionDurationMonths: packageType === '3_MONTHS' ? 3 : packageType === '12_MONTHS' ? 12 : 6,
+        packageType: selectedPkg.id,
+        packageAmount: selectedPkg.amount,
+        biodataLimit: selectedPkg.biodataLimit,
+        subscriptionDurationMonths: selectedPkg.durationMonths,
         mainPhotoUrl: mainPhotoUploadedUrl || undefined
       };
 
       const saved = await api.registerMarriage(payload);
       setRegisteredId(saved.id);
 
-      try {
-        const fd = new FormData();
-        fd.append('registrationType', 'MARRIAGE');
-        fd.append('registrationId', saved.id.toString());
-        fd.append('amount', paymentMode === 'Cash' ? (cashAmountReceived || String(packageAmount)) : String(packageAmount));
-        fd.append('membershipType', 'marriage');
-        fd.append('paymentMode', paymentMode);
-        if (upiTxnId) fd.append('upiTxnId', upiTxnId);
-        if (screenshotFile) fd.append('file', screenshotFile);
+      const finalTxnId =
+        upiTxnId ||
+        (paymentMode === 'Cash' ? 'CASH-' : 'TXN-') +
+          Date.now() +
+          Math.random().toString(36).substring(2, 6).toUpperCase();
 
+      const fd = new FormData();
+      fd.append('registrationType', 'MARRIAGE');
+      fd.append('registrationId', saved.id.toString());
+      fd.append('memberName', formData.fullName);
+      fd.append('memberMobile', formData.mobile);
+      fd.append('amount', paymentMode === 'Cash' ? (cashAmountReceived || String(packageAmount)) : String(packageAmount));
+      fd.append('membershipType', 'marriage');
+      fd.append('paymentMode', paymentMode);
+      fd.append('upiTxnId', finalTxnId);
+      if (screenshotFile) fd.append('file', screenshotFile);
+
+      try {
         await api.submitPayment(fd);
-      } catch (payErr) {
-        console.warn('Payment submit notice:', payErr);
+      } catch (payErr: any) {
+        alert('नोंदणी जतन झाली, परंतु पेमेंट स्क्रीनशॉट अपलोड करण्यात अडचण आली: ' + (payErr?.message || payErr));
       }
 
       setRegistrationComplete(true);
+      setShowSuccessModal(true);
       clearDraft(DRAFT_KEY);
     } catch (err: any) {
       alert('विवाह नोंदणी साठवताना त्रुटी आली: ' + (err.message || err));
@@ -570,6 +608,7 @@ export const MarriageRegistrationPage: React.FC = () => {
 
   const handleResetForm = () => {
     setRegistrationComplete(false);
+    setShowSuccessModal(false);
     setCurrentStep(1);
     setFormData({
       fullName: '',
@@ -582,8 +621,10 @@ export const MarriageRegistrationPage: React.FC = () => {
       gotra: '',
       manglik: 'no',
       city: '',
-      stateId: states.find(s => s.nameEn === 'Maharashtra')?.id.toString() || '',
+      stateId: '',
       districtId: '',
+      talukaId: '',
+      talukaName: '',
       mobile: '',
       email: '',
       parentMobile: '',
@@ -609,7 +650,13 @@ export const MarriageRegistrationPage: React.FC = () => {
       fullPhotoUploaded: false,
       declaration: false,
     });
+    setDistricts([]);
+    setTalukas([]);
+    setCities([]);
+    setCustomCityMode(false);
     setProfileType('bride');
+    setPackageType('PLAN_500');
+    setPackageAmount(500);
     setMainPhotoPreview(null);
     setMainPhotoFile(null);
     setScreenshotPreview(null);
@@ -627,6 +674,8 @@ export const MarriageRegistrationPage: React.FC = () => {
 
   const selectedState = states.find(s => s.id === Number(formData.stateId));
   const selectedDistrict = districts.find(d => d.id === Number(formData.districtId));
+  const selectedTaluka = talukas.find(t => t.id === Number(formData.talukaId));
+  const selectedPackageObj = packages.find(p => p.id === packageType) || packages[0];
   const selectedBloodLabel = bloodGroups.find(b => b.code === formData.bloodGroup)?.labelMr || formData.bloodGroup;
   const selectedMaritalLabel = maritalStatuses.find(m => m.code === formData.maritalStatus)?.labelMr || formData.maritalStatus;
 
@@ -923,7 +972,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">संपर्क मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पालकांचा मोबाईल:</span> <span className="font-bold text-charcoal">{formData.parentMobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">पत्ता (शहर/जिल्हा/राज्य):</span> <span className="font-bold text-charcoal">{formData.city ? `${formData.city}, ` : ''}{selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">पत्ता (शहर/तालुका/जिल्हा/राज्य):</span> <span className="font-bold text-charcoal">{formData.city ? `${formData.city}, ` : ''}{selectedTaluka?.nameMr || selectedTaluka?.nameEn || formData.talukaName ? `${selectedTaluka?.nameMr || selectedTaluka?.nameEn || formData.talukaName}, ` : ''}{selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
                     {formData.aboutSelf && (
                       <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">स्वतःबद्दल थोडक्यात:</span> <span className="font-medium text-charcoal">{formData.aboutSelf}</span></div>
                     )}
@@ -980,7 +1029,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <h4 className="text-xs sm:text-sm font-bold text-saffron-dark">५. नोंदणी व शुल्क तपशील (Registration & Fee)</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी शुल्क:</span> <span className="font-bold text-saffron-dark">₹५०० ({paymentMode})</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी शुल्क व प्लॅन:</span> <span className="font-bold text-saffron-dark">₹{packageAmount} ({paymentMode}) • कमाल {selectedPackageObj.biodataLimit} बायोडाटा</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी स्थिती:</span> <span className="font-bold text-emerald-700">नोंदणी पूर्ण (यशस्वी)</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">घोषणा पुष्टीकरण:</span> <span className="font-semibold text-charcoal">माहिती सत्य व अचूक आहे.</span></div>
                   </div>
@@ -1116,38 +1165,94 @@ export const MarriageRegistrationPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-normal text-charcoal/80 mb-1">राज्य <span className="text-red-500">*</span></label>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">राज्य (संपूर्ण भारत) <span className="text-red-500">*</span></label>
                       <select name="stateId" value={formData.stateId} onChange={handleStateChange} className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.stateId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}>
-                        <option value="">-- राज्य निवडा --</option>
-                        {states.map(s => <option key={s.id} value={s.id}>{s.nameMr || s.nameEn}</option>)}
+                        <option value="">-- राज्य / केंद्रशासित प्रदेश निवडा --</option>
+                        {states.map(s => <option key={s.id} value={s.id}>{s.nameMr ? `${s.nameMr} (${s.nameEn})` : s.nameEn}</option>)}
                       </select>
                       {errors.stateId && <p className="text-red-500 text-xs mt-1">{errors.stateId}</p>}
                     </div>
 
                     <div>
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">जिल्हा <span className="text-red-500">*</span></label>
-                      <select name="districtId" value={formData.districtId} onChange={handleDistrictChange} className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.districtId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}>
+                      <select name="districtId" value={formData.districtId} onChange={handleDistrictChange} disabled={!formData.stateId} className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.districtId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}>
                         <option value="">-- जिल्हा निवडा --</option>
-                        {districts.map(d => <option key={d.id} value={d.id}>{d.nameMr || d.nameEn}</option>)}
+                        {districts.map(d => <option key={d.id} value={d.id}>{d.nameMr ? `${d.nameMr} (${d.nameEn})` : d.nameEn}</option>)}
                       </select>
                       {errors.districtId && <p className="text-red-500 text-xs mt-1">{errors.districtId}</p>}
                     </div>
 
                     <div>
+                      <label className="block text-xs font-normal text-charcoal/80 mb-1">तालुका <span className="text-red-500">*</span></label>
+                      {talukas.length > 0 ? (
+                        <select name="talukaId" value={formData.talukaId} onChange={handleTalukaChange} disabled={!formData.districtId} className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.talukaId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}>
+                          <option value="">-- तालुका निवडा --</option>
+                          {talukas.map(t => <option key={t.id} value={t.id}>{t.nameMr ? `${t.nameMr} (${t.nameEn})` : t.nameEn}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          name="talukaName"
+                          value={formData.talukaName || ''}
+                          onChange={handleInputChange}
+                          disabled={!formData.districtId}
+                          placeholder="तालुक्याचे नाव लिहा"
+                          className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 disabled:opacity-50 transition-all ${errors.talukaId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                        />
+                      )}
+                      {errors.talukaId && <p className="text-red-500 text-xs mt-1">{errors.talukaId}</p>}
+                    </div>
+
+                    <div>
                       <label className="block text-xs font-normal text-charcoal/80 mb-1">शहर / गाव <span className="text-red-500">*</span></label>
-                      <select
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white transition-all ${errors.city ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
-                      >
-                        <option value="">-- शहर निवडा --</option>
-                        {cities.map((c) => (
-                          <option key={c.id} value={c.nameMr || c.nameEn}>
-                            {c.nameMr ? `${c.nameMr}${c.nameEn ? ` (${c.nameEn})` : ''}` : c.nameEn}
-                          </option>
-                        ))}
-                      </select>
+                      {!customCityMode && cities.length > 0 ? (
+                        <select
+                          name="city"
+                          value={cities.some(c => (c.nameMr || c.nameEn) === formData.city) ? formData.city : ''}
+                          onChange={(e) => {
+                            if (e.target.value === '__other__') {
+                              setCustomCityMode(true);
+                              setFormData((prev: any) => ({ ...prev, city: '' }));
+                            } else {
+                              handleInputChange(e);
+                            }
+                          }}
+                          disabled={!formData.districtId}
+                          className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-white disabled:opacity-50 transition-all ${errors.city ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                        >
+                          <option value="">-- शहर / गाव निवडा --</option>
+                          {cities.map((c) => (
+                            <option key={c.id} value={c.nameMr || c.nameEn}>
+                              {c.nameMr ? `${c.nameMr}${c.nameEn ? ` (${c.nameEn})` : ''}` : c.nameEn}
+                            </option>
+                          ))}
+                          <option value="__other__">इतर शहर / गाव लिहा...</option>
+                        </select>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.city}
+                            onChange={handleInputChange}
+                            disabled={!formData.districtId}
+                            placeholder="शहर किंवा गावाचे नाव लिहा"
+                            className={`w-full px-3.5 py-2.5 rounded-card border text-sm outline-none bg-cream/5 disabled:opacity-50 transition-all ${errors.city ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-charcoal/20 focus:border-saffron focus:ring-1 focus:ring-saffron'}`}
+                          />
+                          {cities.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomCityMode(false);
+                                setFormData((prev: any) => ({ ...prev, city: '' }));
+                              }}
+                              className="px-2.5 py-1 text-xs font-bold text-saffron-dark border border-saffron/30 rounded-card hover:bg-saffron/10 shrink-0"
+                            >
+                              यादी
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
                     </div>
 
@@ -1855,7 +1960,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                         ५. पेमेंट माहिती (Payment Details)
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div><span className="text-charcoal/60 font-medium block">नोंदणी शुल्क:</span> <span className="font-bold text-saffron">₹५०० ({paymentMode})</span></div>
+                        <div><span className="text-charcoal/60 font-medium block">नोंदणी शुल्क व प्लॅन:</span> <span className="font-bold text-saffron">₹{packageAmount} ({paymentMode}) • कमाल {selectedPackageObj.biodataLimit} बायोडाटा</span></div>
                         {screenshotPreview && (
                           <div>
                             <span className="text-charcoal/60 font-medium block mb-1">स्क्रीनशॉट:</span>
@@ -2006,7 +2111,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">संपर्क मोबाईल:</span> <span className="font-bold text-charcoal">{formData.mobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">पालकांचा मोबाईल:</span> <span className="font-bold text-charcoal">{formData.parentMobile || '-'}</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">ईमेल:</span> <span className="font-bold text-charcoal">{formData.email || '-'}</span></div>
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">पत्ता (शहर/जिल्हा/राज्य):</span> <span className="font-bold text-charcoal">{formData.city ? `${formData.city}, ` : ''}{selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">पत्ता (शहर/तालुका/जिल्हा/राज्य):</span> <span className="font-bold text-charcoal">{formData.city ? `${formData.city}, ` : ''}{selectedTaluka?.nameMr || selectedTaluka?.nameEn || formData.talukaName ? `${selectedTaluka?.nameMr || selectedTaluka?.nameEn || formData.talukaName}, ` : ''}{selectedDistrict?.nameMr || selectedDistrict?.nameEn || ''}, {selectedState?.nameMr || selectedState?.nameEn || ''}</span></div>
                     {formData.aboutSelf && (
                       <div className="p-2 bg-cream/20 rounded border border-saffron/15 sm:col-span-2 md:col-span-3"><span className="text-charcoal/60 block text-[11px]">स्वतःबद्दल थोडक्यात:</span> <span className="font-medium text-charcoal">{formData.aboutSelf}</span></div>
                     )}
@@ -2062,7 +2167,7 @@ export const MarriageRegistrationPage: React.FC = () => {
                     <h4 className="text-xs sm:text-sm font-bold text-saffron-dark">५. नोंदणी व शुल्क तपशील (Registration & Fee)</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी शुल्क:</span> <span className="font-bold text-saffron-dark">₹५०० ({paymentMode})</span></div>
+                    <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी शुल्क व प्लॅन:</span> <span className="font-bold text-saffron-dark">₹{packageAmount} ({paymentMode}) • कमाल {selectedPackageObj.biodataLimit} बायोडाटा</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">नोंदणी स्थिती:</span> <span className="font-bold text-emerald-700">नोंदणी पूर्ण (यशस्वी)</span></div>
                     <div className="p-2 bg-cream/20 rounded border border-saffron/15"><span className="text-charcoal/60 block text-[11px]">घोषणा पुष्टीकरण:</span> <span className="font-semibold text-charcoal">माहिती सत्य व अचूक आहे.</span></div>
                   </div>
@@ -2128,6 +2233,12 @@ export const MarriageRegistrationPage: React.FC = () => {
       <ConfirmModal
         state={confirmState}
         onClose={closeConfirm}
+      />
+
+      {/* Registration Success Popup Modal */}
+      <RegistrationSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
       />
 
     </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Eye, CheckCircle2, XCircle, ChevronDown, ChevronUp, Search, Filter } from 'lucide-react';
-import { api, type MarriageRegistrationData, type MaritalStatus, type BloodGroup } from '../../services/api';
+import { Heart, Eye, CheckCircle2, XCircle, ChevronDown, ChevronUp, Search, Filter, X } from 'lucide-react';
+import { api, type MarriageRegistrationData, type MaritalStatus, type BloodGroup, type PaymentData } from '../../services/api';
+import { imageUrl } from '../../services/galleryApi';
 
 const convertDigitsToMarathi = (str: string | number): string => {
   const marathiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -24,7 +25,12 @@ const AdminMarriagePage: React.FC = () => {
   const [filterType, setFilterType] = useState('');
   const [filterActive, setFilterActive] = useState('');
 
-  // Rejection modal state
+  // Payments & Rejection modal state
+  const [payments, setPayments] = useState<PaymentData[]>(api.getCachedPayments() || []);
+  const [viewScreenshotUrl, setViewScreenshotUrl] = useState<string | null>(null);
+  const [paymentActionLoadingId, setPaymentActionLoadingId] = useState<number | null>(null);
+  const [payRejectModalId, setPayRejectModalId] = useState<number | null>(null);
+  const [payRejectReason, setPayRejectReason] = useState('');
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -38,15 +44,59 @@ const AdminMarriagePage: React.FC = () => {
 
   const loadMarriages = async () => {
     try {
-      const data = await api.getAllMarriages();
+      const [data, payData] = await Promise.all([
+        api.getAllMarriages(),
+        api.getAllPayments().catch(() => []),
+      ]);
       const sorted = [...data].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       setMarriages(sorted);
+      setPayments(payData);
     } catch (err) {
       console.error('Error loading marriages:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getMarriagePayment = (marriageId: number): PaymentData | undefined => {
+    return payments.find((p) => {
+      const regType = (p.registrationType || '').toUpperCase();
+      const memType = (p.membershipType || '').toLowerCase();
+      const isMarriagePay = regType === 'MARRIAGE' || memType.includes('marriage') || memType.includes('विवाह');
+      return isMarriagePay && (p.registrationId === marriageId || p.memberId === marriageId);
+    });
+  };
+
+  const handleVerifyPayment = async (paymentId: number) => {
+    setPaymentActionLoadingId(paymentId);
+    try {
+      const updated = await api.updatePaymentStatus(paymentId, 'VERIFIED');
+      setPayments(prev => prev.map(p => p.id === paymentId ? { ...p, ...updated, status: 'VERIFIED' } : p));
+    } catch (err: any) {
+      alert('पेमेंट पडताळणी करताना त्रुटी: ' + (err?.message || err));
+    } finally {
+      setPaymentActionLoadingId(null);
+    }
+  };
+
+  const handleConfirmRejectPayment = async () => {
+    if (payRejectModalId === null) return;
+    if (!payRejectReason.trim()) {
+      alert('कृपया पेमेंट नाकारण्याचे कारण प्रविष्ट करा.');
+      return;
+    }
+    setPaymentActionLoadingId(payRejectModalId);
+    try {
+      const updated = await api.updatePaymentStatus(payRejectModalId, 'REJECTED', payRejectReason.trim());
+      setPayments(prev => prev.map(p => p.id === payRejectModalId ? { ...p, ...updated, status: 'REJECTED', rejectionReason: payRejectReason.trim() } : p));
+      setPayRejectModalId(null);
+      setPayRejectReason('');
+    } catch (err: any) {
+      alert('पेमेंट नाकारताना त्रुटी: ' + (err?.message || err));
+    } finally {
+      setPaymentActionLoadingId(null);
     }
   };
 
@@ -391,6 +441,50 @@ const AdminMarriagePage: React.FC = () => {
                         <div className="col-span-2"><span className="text-charcoal/50 font-semibold block">अपेक्षा</span><span className="font-bold text-charcoal">{item.expectations}</span></div>
                       </div>
                     </div>
+
+                    {(() => {
+                      const payment = getMarriagePayment(item.id);
+                      const ssUrl = payment?.screenshotUrl ? imageUrl(payment.screenshotUrl) : null;
+                      return (
+                        <div>
+                          <h5 className="text-xs font-bold text-saffron-dark mb-2 border-b border-saffron/20 pb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट व प्लॅन माहिती</h5>
+                          <div className="bg-white/80 p-3 rounded-lg border border-saffron/20 space-y-2 text-xs">
+                            <div className="flex flex-wrap justify-between gap-2">
+                              <span className="font-bold text-charcoal">प्लॅन: ₹{item.packageAmount || payment?.amount || 500} (मर्यादा: {item.biodataLimit || 10})</span>
+                              {payment && (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${payment.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' : payment.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
+                                  {payment.status === 'VERIFIED' ? 'सत्यापित' : payment.status === 'REJECTED' ? 'नाकारले' : 'प्रलंबित'}
+                                </span>
+                              )}
+                            </div>
+                            {payment ? (
+                              <>
+                                <div className="text-[11px] text-charcoal/70 font-mono">मोड: {payment.paymentMode} • Txn: {payment.upiTxnId || '-'}</div>
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {ssUrl && (
+                                    <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="px-2.5 py-1 bg-amber-100 text-saffron-dark font-bold rounded text-[11px] flex items-center gap-1">
+                                      <Eye size={12} /> स्क्रीनशॉट बघा
+                                    </button>
+                                  )}
+                                  {payment.status === 'PENDING' && (
+                                    <>
+                                      <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => handleVerifyPayment(payment.id)} className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded text-[11px]">
+                                        पडताळणी करा
+                                      </button>
+                                      <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => { setPayRejectModalId(payment.id); setPayRejectReason(''); }} className="px-2.5 py-1 bg-rose-600 text-white font-bold rounded text-[11px]">
+                                        नाकारा
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="text-charcoal/50">पेमेंट रेकॉर्ड उपलब्ध नाही.</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -522,6 +616,10 @@ const AdminMarriagePage: React.FC = () => {
                                   <span className="font-bold text-charcoal">{item.city}</span>
                                 </div>
                                 <div>
+                                  <span className="text-charcoal/50 font-semibold block mb-0.5">तालुका</span>
+                                  <span className="font-bold text-charcoal">{item.taluka?.nameMr || item.talukaName || '-'}</span>
+                                </div>
+                                <div>
                                   <span className="text-charcoal/50 font-semibold block mb-0.5">जिल्हा</span>
                                   <span className="font-bold text-charcoal">{item.district?.nameMr || '-'}</span>
                                 </div>
@@ -633,6 +731,49 @@ const AdminMarriagePage: React.FC = () => {
                                 </div>
                               </div>
                             </div>
+
+                            {/* Payment & Plan */}
+                            {(() => {
+                              const payment = getMarriagePayment(item.id);
+                              const ssUrl = payment?.screenshotUrl ? imageUrl(payment.screenshotUrl) : null;
+                              return (
+                                <div>
+                                  <h5 className="text-xs font-bold text-saffron-dark mb-3 border-b border-saffron/20 pb-1.5" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट माहिती व स्क्रीनशॉट</h5>
+                                  <div className="bg-white/90 p-3.5 rounded-xl border border-saffron/20 flex flex-wrap items-center justify-between gap-4 text-xs">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-1">
+                                      <div><span className="text-charcoal/50 font-semibold block">प्लॅन व शुल्क</span><span className="font-bold text-saffron-dark">₹{item.packageAmount || payment?.amount || 500} (मर्यादा: {item.biodataLimit || 10})</span></div>
+                                      <div><span className="text-charcoal/50 font-semibold block">मोड व Txn ID</span><span className="font-mono font-bold text-charcoal">{payment ? `${payment.paymentMode} • ${payment.upiTxnId || '-'}` : '-'}</span></div>
+                                      <div>
+                                        <span className="text-charcoal/50 font-semibold block">पेमेंट स्थिती</span>
+                                        {payment ? (
+                                          <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${payment.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' : payment.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
+                                            {payment.status === 'VERIFIED' ? 'सत्यापित' : payment.status === 'REJECTED' ? 'नाकारले' : 'प्रलंबित'}
+                                          </span>
+                                        ) : <span className="text-charcoal/40">-</span>}
+                                      </div>
+                                      <div>
+                                        <span className="text-charcoal/50 font-semibold block">स्क्रीनशॉट</span>
+                                        {ssUrl ? (
+                                          <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="mt-0.5 inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-saffron-dark font-bold rounded-lg transition-colors cursor-pointer">
+                                            <Eye size={13} /> स्क्रीनशॉट बघा
+                                          </button>
+                                        ) : <span className="text-charcoal/40">नाही</span>}
+                                      </div>
+                                    </div>
+                                    {payment && payment.status === 'PENDING' && (
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => handleVerifyPayment(payment.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs cursor-pointer">
+                                          पडताळणी करा
+                                        </button>
+                                        <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => { setPayRejectModalId(payment.id); setPayRejectReason(''); }} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer">
+                                          नाकारा
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
@@ -688,6 +829,38 @@ const AdminMarriagePage: React.FC = () => {
                 <XCircle size={14} />
                 नाकारा
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Screenshot Modal */}
+      {viewScreenshotUrl && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setViewScreenshotUrl(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-4 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-charcoal/10 pb-2">
+              <h4 className="font-bold text-saffron-dark text-sm">पेमेंट स्क्रीनशॉट</h4>
+              <button type="button" onClick={() => setViewScreenshotUrl(null)} className="p-1 rounded-lg hover:bg-charcoal/10"><X size={18} /></button>
+            </div>
+            <img src={viewScreenshotUrl} alt="Payment Screenshot" className="w-full max-h-[70vh] object-contain rounded-xl border border-saffron/20" />
+          </div>
+        </div>
+      )}
+
+      {/* Payment Reject Modal */}
+      {payRejectModalId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-sm">
+          <div className="bg-white rounded-card-lg p-6 w-full max-w-md shadow-soft-lg border border-amber-200/60 space-y-3">
+            <h3 className="text-base font-bold text-saffron-dark">पेमेंट नाकारण्याचे कारण *</h3>
+            <textarea
+              value={payRejectReason}
+              onChange={(e) => setPayRejectReason(e.target.value)}
+              placeholder="पेमेंट का नाकारले ते नमूद करा..."
+              className="w-full border border-charcoal/20 rounded-xl p-3 text-sm min-h-[90px]"
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setPayRejectModalId(null)} className="px-4 py-2 text-xs font-bold bg-charcoal/10 rounded-xl">रद्द करा</button>
+              <button type="button" onClick={handleConfirmRejectPayment} className="px-4 py-2 text-xs font-bold bg-rose-600 text-white rounded-xl">नाकारा</button>
             </div>
           </div>
         </div>

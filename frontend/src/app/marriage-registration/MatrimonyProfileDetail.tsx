@@ -32,7 +32,7 @@ export const MatrimonyProfileDetail: React.FC = () => {
   const navigate = useNavigate();
   const profileId = Number(id);
 
-  const { matrimonyUser, favorites, toggleFavorite } = useMatrimonyAuth();
+  const { matrimonyUser, favorites, quota, refreshQuota, toggleFavorite } = useMatrimonyAuth();
 
   const [publicProfile, setPublicProfile] = useState<MatrimonyPublicProfile | null>(null);
   const [fullProfile, setFullProfile] = useState<MatrimonyFullProfile | null>(null);
@@ -40,6 +40,7 @@ export const MatrimonyProfileDetail: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'basic' | 'education' | 'family' | 'personal' | 'photos' | 'contact'>('basic');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [accessDeniedReason, setAccessDeniedReason] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [similarScrollIndex, setSimilarScrollIndex] = useState<number>(0);
@@ -69,13 +70,18 @@ export const MatrimonyProfileDetail: React.FC = () => {
 
         // 3. If logged in with active subscription or admin, attempt to load full details
         if (matrimonyUser) {
+          setAccessDeniedReason(null);
           try {
             const full = await api.getMatrimonyFullProfile(profileId);
             setFullProfile(full);
+            refreshQuota();
           } catch (err: any) {
-            // Subscription expired or unauthorized
-            if (err?.message && err.message.includes('नूतनीकरण')) {
-              setError(err.message);
+            const msg = err?.message || '';
+            if (msg.includes('नूतनीकरण') && !msg.includes('मर्यादा')) {
+              setError(msg);
+            } else if (msg) {
+              setAccessDeniedReason(msg);
+              refreshQuota();
             }
           }
         }
@@ -87,7 +93,7 @@ export const MatrimonyProfileDetail: React.FC = () => {
     };
 
     loadData();
-  }, [profileId, matrimonyUser, navigate]);
+  }, [profileId, matrimonyUser, navigate, refreshQuota]);
 
   const isFavorite = favorites.includes(profileId);
 
@@ -240,6 +246,23 @@ export const MatrimonyProfileDetail: React.FC = () => {
                 Profile ID: {isBride ? 'BRD' : 'GRM'}{String(publicProfile.id).padStart(7, '0')}
               </span>
             </div>
+
+            {matrimonyUser && (fullProfile?.biodataLimit || quota) && (
+              <div className="rounded-xl bg-cream/60 border border-saffron/20 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <span className="font-bold text-charcoal/80">
+                  प्लॅन बायोडाटा मर्यादा:
+                </span>
+                <span className="font-extrabold text-saffron-dark">
+                  वापरलेले: {fullProfile?.usedViews ?? quota?.usedViews ?? 0} / {fullProfile?.biodataLimit ?? quota?.biodataLimit ?? 10} (उर्वरित: {fullProfile?.remainingViews ?? quota?.remainingViews ?? 0})
+                </span>
+              </div>
+            )}
+
+            {accessDeniedReason && (
+              <div className="rounded-xl bg-amber-50 border border-amber-300 px-3.5 py-2.5 text-xs font-bold text-amber-800 leading-relaxed">
+                ⚠️ {accessDeniedReason}
+              </div>
+            )}
 
             <div>
               <h2

@@ -17,12 +17,6 @@ export const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const [showNotifModal, setShowNotifModal] = useState(false);
 
-
-  const isMatrimonyRoute =
-    location.pathname.startsWith('/marriage-registration') ||
-    location.pathname.startsWith('/marriage-profile') ||
-    location.pathname === '/marriage-login';
-
   const handleLogout = () => {
     navigate('/', { replace: true });
     setTimeout(() => {
@@ -31,19 +25,34 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon/10 shadow-sm px-4 py-2.5 flex items-center justify-between">
-      {/* Left: Hamburger menu (mobile only) */}
-      <button
-        onClick={onToggleSidebar}
-        className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full transition-colors focus:outline-none lg:hidden"
-        aria-label="Menu"
-      >
-        <Menu size={24} className="stroke-[2.5]" />
-      </button>
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon/10 shadow-sm px-3 sm:px-5 py-2.5 flex items-center justify-between gap-2">
+      {/* Left: Mobile hamburger menu + Sanstha Logo */}
+      <div className="flex items-center gap-2 shrink-0 min-w-[44px] sm:min-w-[64px]">
+        <button
+          onClick={onToggleSidebar}
+          className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full transition-colors focus:outline-none lg:hidden"
+          aria-label="Menu"
+        >
+          <Menu size={24} className="stroke-[2.5]" />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="flex items-center focus:outline-none rounded-full hover:opacity-90 transition-opacity cursor-pointer"
+          title="दापोली मंडणगड सेवाभावी संस्था, पुणे"
+        >
+          <img
+            src="/logo.png"
+            alt="दापोली मंडणगड सेवाभावी संस्था लोगो"
+            className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain border border-saffron/20 bg-cream/30 p-0.5 shadow-2xs shrink-0"
+          />
+        </button>
+      </div>
 
       {/* Center: NGO Name & Tagline */}
-      <div className="flex flex-col items-center text-center px-2 flex-1">
-        <h1 className="text-[17px] sm:text-xl md:text-2xl font-bold text-maroon leading-tight m-0 tracking-wide" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+      <div className="flex flex-col items-center text-center px-1 sm:px-2 flex-1 min-w-0">
+        <h1 className="text-[15px] sm:text-xl md:text-2xl font-bold text-maroon leading-tight m-0 tracking-wide truncate max-w-full" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
           दापोली मंडणगड सेवाभावी संस्था, पुणे
         </h1>
         <div className="flex items-center gap-1.5 mt-0.5">
@@ -56,11 +65,11 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right: Bell + optional Logout */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center justify-end gap-1 shrink-0 min-w-[44px] sm:min-w-[64px]">
         <button
           className="p-2 hover:bg-cream-dark/50 text-maroon hover:text-saffron rounded-full relative transition-colors focus:outline-none"
           aria-label="Notifications"
-              onClick={() => setShowNotifModal(true)}
+          onClick={() => setShowNotifModal(true)}
         >
           <Bell size={24} className="stroke-[2.2]" />
           {notificationCount > 0 && (
@@ -106,7 +115,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setShowNotifModal(false)}
               className="w-full py-2.5 rounded-xl bg-saffron hover:bg-saffron-dark text-white font-bold text-sm shadow-md transition-all active:scale-[0.98] cursor-pointer"
             >
-            Ok
+              Ok
             </button>
           </div>
         </div>

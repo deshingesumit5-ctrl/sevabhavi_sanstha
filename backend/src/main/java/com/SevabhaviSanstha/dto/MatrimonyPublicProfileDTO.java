@@ -27,6 +27,8 @@ public class MatrimonyPublicProfileDTO {
     private String occupationType;
     private String designation;
     private String city;
+    private Integer talukaId;
+    private String talukaNameMr;
     private String districtNameMr;
     private String stateNameMr;
     private String mainPhotoUrl;

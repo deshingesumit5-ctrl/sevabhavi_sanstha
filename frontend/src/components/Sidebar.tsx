@@ -23,12 +23,8 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const isMatrimonyRoute =
-    location.pathname.startsWith('/marriage-registration') ||
-    location.pathname.startsWith('/marriage-profile') ||
-    location.pathname === '/marriage-login';
+  const _location = useLocation();
+  void _location;
 
   const publicMenuItems = [
     { id: 'home', path: '/', label: 'होम', icon: Home },
@@ -42,7 +38,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   ];
 
   const handleNavigate = (path: string) => {
-    navigate(path);
+    if (path === '/donation-registration') {
+      navigate(path, { state: { resetCategory: Date.now() } });
+    } else {
+      navigate(path);
+    }
     onClose();
   };
 

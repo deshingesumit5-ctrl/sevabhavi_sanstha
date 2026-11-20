@@ -203,10 +203,10 @@ export const AboutPage: React.FC = () => {
                 <p className="text-[#d9531e] text-xs md:text-sm font-bold leading-tight" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
                   {member.role}
                 </p>
-                <p className="text-charcoal text-xs md:text-sm font-bold leading-tight mt-0.5">
+                <p className="text-black text-xs md:text-sm font-bold leading-tight mt-0.5">
                   {member.name}
                 </p>
-                <p className="text-charcoal/50 text-[10px] md:text-xs mt-0.5">
+                <p className="text-black text-[10px] md:text-xs font-medium mt-0.5">
                   ({member.place})
                 </p>
               </div>

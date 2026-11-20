@@ -4,8 +4,8 @@ import com.SevabhaviSanstha.config.JwtTokenUtil;
 import com.SevabhaviSanstha.dto.*;
 import com.SevabhaviSanstha.entity.MarriageRegistration;
 import com.SevabhaviSanstha.entity.MatrimonyFavorite;
-import com.SevabhaviSanstha.repository.MarriageRegistrationRepository;
-import com.SevabhaviSanstha.repository.MatrimonyFavoriteRepository;
+import com.SevabhaviSanstha.entity.MatrimonyProfileView;
+import com.SevabhaviSanstha.repository.*;
 import com.SevabhaviSanstha.service.MarriageRegistrationService;
 import com.SevabhaviSanstha.util.PdfFontUtil;
 import com.lowagie.text.*;
@@ -44,6 +44,18 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
     private MatrimonyFavoriteRepository matrimonyFavoriteRepository;
 
     @Autowired
+    private MatrimonyProfileViewRepository matrimonyProfileViewRepository;
+
+    @Autowired
+    private StateRepository stateRepository;
+
+    @Autowired
+    private DistrictRepository districtRepository;
+
+    @Autowired
+    private TalukaRepository talukaRepository;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -71,29 +83,43 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             registration.setPasswordHash(passwordEncoder.encode(registration.getPasswordHash().trim()));
         }
 
-        // Package settings
-        if (registration.getPackageType() == null || registration.getPackageType().isBlank()) {
-            registration.setPackageType("6_MONTHS");
+        // Resolve location relations safely
+        if (registration.getState() != null && registration.getState().getId() != null) {
+            stateRepository.findById(registration.getState().getId()).ifPresent(registration::setState);
         }
-        if (registration.getPackageAmount() == null) {
-            if ("3_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
-                registration.setPackageAmount(new BigDecimal("300.00"));
-                registration.setSubscriptionDurationMonths(3);
-            } else if ("12_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
-                registration.setPackageAmount(new BigDecimal("800.00"));
-                registration.setSubscriptionDurationMonths(12);
-            } else {
-                registration.setPackageAmount(new BigDecimal("500.00"));
-                registration.setSubscriptionDurationMonths(6);
-            }
+        if (registration.getDistrict() != null && registration.getDistrict().getId() != null) {
+            districtRepository.findById(registration.getDistrict().getId()).ifPresent(registration::setDistrict);
+        }
+        if (registration.getTaluka() != null && registration.getTaluka().getId() != null) {
+            talukaRepository.findById(registration.getTaluka().getId()).ifPresent(t -> {
+                registration.setTaluka(t);
+                if (registration.getTalukaName() == null || registration.getTalukaName().isBlank()) {
+                    registration.setTalukaName(t.getNameMr() != null ? t.getNameMr() : t.getNameEn());
+                }
+            });
+        }
+
+        // Package & Biodata View Limit settings: ₹500 -> 10, ₹1000 -> 20, ₹1500 -> 40
+        String pkgType = registration.getPackageType() != null ? registration.getPackageType().trim().toUpperCase() : "PLAN_500";
+        if (pkgType.isBlank()) {
+            pkgType = "PLAN_500";
+        }
+        registration.setPackageType(pkgType);
+
+        if ("PLAN_1500".equals(pkgType) || "PREMIUM_1500".equals(pkgType) || "12_MONTHS".equals(pkgType)
+                || (registration.getPackageAmount() != null && registration.getPackageAmount().compareTo(new BigDecimal("1500")) >= 0)) {
+            registration.setPackageAmount(new BigDecimal("1500.00"));
+            registration.setBiodataLimit(40);
+            registration.setSubscriptionDurationMonths(12);
+        } else if ("PLAN_1000".equals(pkgType) || "STANDARD_1000".equals(pkgType)
+                || (registration.getPackageAmount() != null && registration.getPackageAmount().compareTo(new BigDecimal("1000")) >= 0)) {
+            registration.setPackageAmount(new BigDecimal("1000.00"));
+            registration.setBiodataLimit(20);
+            registration.setSubscriptionDurationMonths(6);
         } else {
-            if ("3_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
-                registration.setSubscriptionDurationMonths(3);
-            } else if ("12_MONTHS".equalsIgnoreCase(registration.getPackageType())) {
-                registration.setSubscriptionDurationMonths(12);
-            } else {
-                registration.setSubscriptionDurationMonths(6);
-            }
+            registration.setPackageAmount(new BigDecimal("500.00"));
+            registration.setBiodataLimit(10);
+            registration.setSubscriptionDurationMonths(6);
         }
 
         registration.setApprovalStatus("PENDING");
@@ -152,6 +178,31 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
 
     @Override
     public Page<MatrimonyPublicProfileDTO> getPublicProfiles(MatrimonyFilterDTO filter, Pageable pageable, Integer currentUserId) {
+        String enforcedOppositeType = null;
+        if (currentUserId != null) {
+            MarriageRegistration viewer = marriageRegistrationRepository.findById(currentUserId).orElse(null);
+            if (viewer != null && viewer.getProfileType() != null) {
+                if ("groom".equalsIgnoreCase(viewer.getProfileType())) {
+                    enforcedOppositeType = "bride";
+                } else if ("bride".equalsIgnoreCase(viewer.getProfileType())) {
+                    enforcedOppositeType = "groom";
+                }
+            }
+        }
+
+        if (enforcedOppositeType != null && filter != null && filter.getProfileType() != null
+                && !filter.getProfileType().isBlank()
+                && !"all".equalsIgnoreCase(filter.getProfileType())
+                && !enforcedOppositeType.equalsIgnoreCase(filter.getProfileType().trim())) {
+            return Page.empty(pageable);
+        }
+
+        final String targetProfileType = enforcedOppositeType != null
+                ? enforcedOppositeType
+                : (filter != null && filter.getProfileType() != null && !filter.getProfileType().isBlank() && !"all".equalsIgnoreCase(filter.getProfileType())
+                        ? filter.getProfileType().toLowerCase().trim()
+                        : null);
+
         Specification<MarriageRegistration> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -164,12 +215,11 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                 predicates.add(cb.notEqual(root.get("id"), currentUserId));
             }
 
-            if (filter != null) {
-                // Gender / Profile Type
-                if (filter.getProfileType() != null && !filter.getProfileType().isBlank() && !"all".equalsIgnoreCase(filter.getProfileType())) {
-                    predicates.add(cb.equal(cb.lower(root.get("profileType")), filter.getProfileType().toLowerCase().trim()));
-                }
+            if (targetProfileType != null) {
+                predicates.add(cb.equal(cb.lower(root.get("profileType")), targetProfileType));
+            }
 
+            if (filter != null) {
                 // Age filters based on birthDate
                 LocalDate today = LocalDate.now();
                 if (filter.getMinAge() != null && filter.getMinAge() > 0) {
@@ -210,6 +260,11 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                 // District
                 if (filter.getDistrictId() != null && filter.getDistrictId() > 0) {
                     predicates.add(cb.equal(root.get("district").get("id"), filter.getDistrictId()));
+                }
+
+                // Taluka
+                if (filter.getTalukaId() != null && filter.getTalukaId() > 0) {
+                    predicates.add(cb.equal(root.get("taluka").get("id"), filter.getTalukaId()));
                 }
 
                 // City / Taluka
@@ -256,29 +311,87 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
         return mapToPublicDTO(reg, isFav);
     }
 
+    private int resolveBiodataLimit(MarriageRegistration reg) {
+        if (reg.getBiodataLimit() != null && reg.getBiodataLimit() > 0) {
+            return reg.getBiodataLimit();
+        }
+        if (reg.getPackageAmount() != null) {
+            if (reg.getPackageAmount().compareTo(new BigDecimal("1500")) >= 0) return 40;
+            if (reg.getPackageAmount().compareTo(new BigDecimal("1000")) >= 0) return 20;
+        }
+        if ("PLAN_1500".equalsIgnoreCase(reg.getPackageType()) || "PREMIUM_1500".equalsIgnoreCase(reg.getPackageType())) {
+            return 40;
+        }
+        if ("PLAN_1000".equalsIgnoreCase(reg.getPackageType()) || "STANDARD_1000".equalsIgnoreCase(reg.getPackageType())) {
+            return 20;
+        }
+        return 10;
+    }
+
     @Override
+    @Transactional
     public MatrimonyFullProfileDTO getFullProfileById(Integer id, Integer currentUserId, boolean isAdmin) {
         MarriageRegistration target = getById(id);
         if ((!"APPROVED".equalsIgnoreCase(target.getApprovalStatus()) || Boolean.FALSE.equals(target.getIsActive())) && !isAdmin) {
             throw new RuntimeException("प्रोफाइल सापडली नाही.");
         }
 
-        // If not admin, verify that current user is an approved matrimony user with active subscription
+        Integer biodataLimit = null;
+        Long usedViews = null;
+        Long remainingViews = null;
+
+        // If not admin, verify approved matrimony user, active subscription, opposite gender, and unique view limit
         if (!isAdmin) {
             if (currentUserId == null) {
                 throw new RuntimeException("संपूर्ण प्रोफाइल आणि संपर्क माहिती पाहण्यासाठी कृपया नोंदणी करा किंवा लॉगिन करा.");
             }
             MarriageRegistration viewer = getById(currentUserId);
-            if (!"APPROVED".equalsIgnoreCase(viewer.getApprovalStatus())) {
+            if (!"APPROVED".equalsIgnoreCase(viewer.getApprovalStatus()) || Boolean.FALSE.equals(viewer.getIsActive())) {
                 throw new RuntimeException("तुमचा अर्ज अद्याप मंजूर झालेला नाही. मंजुरीनंतरच इतर प्रोफाइल्स पाहता येतील.");
             }
             if (viewer.getSubscriptionEndDate() != null && viewer.getSubscriptionEndDate().isBefore(LocalDate.now())) {
                 throw new RuntimeException("तुमची सबस्क्रिप्शन मुदत संपली आहे (" + viewer.getSubscriptionEndDate() + "). कृपया नूतनीकरण करा.");
             }
+
+            // Opposite-gender viewing rule
+            if (!Objects.equals(viewer.getId(), target.getId()) && viewer.getProfileType() != null && target.getProfileType() != null) {
+                if ("groom".equalsIgnoreCase(viewer.getProfileType()) && !"bride".equalsIgnoreCase(target.getProfileType())) {
+                    throw new RuntimeException("वर (Groom) खात्यावरून फक्त वधू (Bride) बायोडाटा प्रोफाइल्स पाहता येतात.");
+                }
+                if ("bride".equalsIgnoreCase(viewer.getProfileType()) && !"groom".equalsIgnoreCase(target.getProfileType())) {
+                    throw new RuntimeException("वधू (Bride) खात्यावरून फक्त वर (Groom) बायोडाटा प्रोफाइल्स पाहता येतात.");
+                }
+            }
+
+            int limit = resolveBiodataLimit(viewer);
+            boolean alreadyViewed = Objects.equals(viewer.getId(), target.getId())
+                    || matrimonyProfileViewRepository.existsByViewerIdAndViewedProfileId(currentUserId, id);
+            long currentUsed = matrimonyProfileViewRepository.countByViewerId(currentUserId);
+
+            if (!alreadyViewed) {
+                if (currentUsed >= limit) {
+                    throw new RuntimeException("तुमच्या प्लॅनची कमाल बायोडाटा मर्यादा (" + limit + " प्रोफाइल्स) पूर्ण झाली आहे. अधिक प्रोफाइल्स पाहण्यासाठी कृपया संस्थेशी संपर्क साधा.");
+                }
+                MatrimonyProfileView viewRecord = MatrimonyProfileView.builder()
+                        .viewerId(currentUserId)
+                        .viewedProfileId(id)
+                        .viewedAt(LocalDateTime.now())
+                        .build();
+                matrimonyProfileViewRepository.save(viewRecord);
+                currentUsed += 1;
+            }
+
+            biodataLimit = limit;
+            usedViews = currentUsed;
+            remainingViews = Math.max(0L, limit - currentUsed);
         }
 
         boolean isFav = (currentUserId != null) && matrimonyFavoriteRepository.existsByUserIdAndFavoriteProfileId(currentUserId, id);
-        return mapToFullDTO(target, isFav);
+        MatrimonyFullProfileDTO dto = mapToFullDTO(target, isFav);
+        dto.setBiodataLimit(biodataLimit);
+        dto.setUsedViews(usedViews);
+        dto.setRemainingViews(remainingViews);
+        return dto;
     }
 
     @Override
@@ -338,6 +451,10 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
 
         String token = jwtTokenUtil.generateTokenWithClaims(claims, reg.getMobile());
 
+        int limit = resolveBiodataLimit(reg);
+        long used = matrimonyProfileViewRepository.countByViewerId(reg.getId());
+        long remaining = Math.max(0L, limit - used);
+
         return MatrimonyAuthResponseDTO.builder()
                 .token(token)
                 .id(reg.getId())
@@ -349,6 +466,30 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                 .subscriptionEndDate(reg.getSubscriptionEndDate())
                 .mainPhotoUrl(reg.getMainPhotoUrl())
                 .role("ROLE_MATRIMONY_USER")
+                .packageType(reg.getPackageType())
+                .biodataLimit(limit)
+                .usedViews(used)
+                .remainingViews(remaining)
+                .build();
+    }
+
+    @Override
+    public MatrimonyQuotaDTO getViewerQuota(Integer userId) {
+        MarriageRegistration viewer = getById(userId);
+        int limit = resolveBiodataLimit(viewer);
+        List<Integer> viewedIds = matrimonyProfileViewRepository.findByViewerId(userId).stream()
+                .map(MatrimonyProfileView::getViewedProfileId)
+                .collect(Collectors.toList());
+        long used = viewedIds.size();
+        long remaining = Math.max(0L, limit - used);
+        return MatrimonyQuotaDTO.builder()
+                .profileType(viewer.getProfileType())
+                .packageType(viewer.getPackageType())
+                .packageAmount(viewer.getPackageAmount())
+                .biodataLimit(limit)
+                .usedViews(used)
+                .remainingViews(remaining)
+                .viewedProfileIds(viewedIds)
                 .build();
     }
 
@@ -451,6 +592,8 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                 .occupationType(reg.getOccupationType())
                 .designation(reg.getDesignation())
                 .city(reg.getCity())
+                .talukaId(reg.getTaluka() != null ? reg.getTaluka().getId() : null)
+                .talukaNameMr(reg.getTaluka() != null ? reg.getTaluka().getNameMr() : reg.getTalukaName())
                 .districtNameMr(reg.getDistrict() != null ? reg.getDistrict().getNameMr() : null)
                 .stateNameMr(reg.getState() != null ? reg.getState().getNameMr() : null)
                 .mainPhotoUrl(reg.getMainPhotoUrl())
@@ -481,6 +624,8 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
                 .gotra(reg.getGotra())
                 .manglik(reg.getManglik())
                 .city(reg.getCity())
+                .talukaId(reg.getTaluka() != null ? reg.getTaluka().getId() : null)
+                .talukaNameMr(reg.getTaluka() != null ? reg.getTaluka().getNameMr() : reg.getTalukaName())
                 .districtId(reg.getDistrict() != null ? reg.getDistrict().getId() : null)
                 .districtNameMr(reg.getDistrict() != null ? reg.getDistrict().getNameMr() : null)
                 .stateId(reg.getState() != null ? reg.getState().getId() : null)
@@ -601,8 +746,11 @@ public class MarriageRegistrationServiceImpl implements MarriageRegistrationServ
             addGridRow(sec1, "संपर्क मोबाईल:", reg.getMobile(), "पालकांचा मोबाईल:", reg.getParentMobile(), labelFont, valueFont, lightBorder);
             addGridRow(sec1, "ईमेल:", reg.getEmail() != null ? reg.getEmail() : "-", "शहर / गाव:", reg.getCity(), labelFont, valueFont, lightBorder);
 
-            String stateDistrict = (reg.getDistrict() != null ? reg.getDistrict().getNameMr() + ", " : "") + (reg.getState() != null ? reg.getState().getNameMr() : "");
-            addGridFullRow(sec1, "पत्ता (जिल्हा/राज्य):", stateDistrict, labelFont, valueFont, lightBorder);
+            String talukaStr = reg.getTaluka() != null ? reg.getTaluka().getNameMr() : (reg.getTalukaName() != null ? reg.getTalukaName() : "");
+            String stateDistrict = (!talukaStr.isBlank() ? talukaStr + ", " : "")
+                    + (reg.getDistrict() != null ? reg.getDistrict().getNameMr() + ", " : "")
+                    + (reg.getState() != null ? reg.getState().getNameMr() : "");
+            addGridFullRow(sec1, "पत्ता (तालुका/जिल्हा/राज्य):", stateDistrict, labelFont, valueFont, lightBorder);
             if (reg.getAboutSelf() != null && !reg.getAboutSelf().isBlank()) {
                 addGridFullRow(sec1, "स्वतःबद्दल माहिती:", reg.getAboutSelf(), labelFont, valueFont, lightBorder);
             }

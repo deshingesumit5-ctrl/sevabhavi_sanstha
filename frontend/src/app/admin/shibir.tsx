@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { api, type ShibirRegistrationData, type ShibirMaster } from '../../services/api';
-import { Calendar, Plus, Trash2, CheckCircle2, XCircle, Search, Eye, ChevronDown, ChevronUp, Filter } from 'lucide-react';
+import { api, type ShibirRegistrationData, type ShibirMaster, type PaymentData } from '../../services/api';
+import { Calendar, Plus, Trash2, CheckCircle2, XCircle, Search, Eye, ChevronDown, ChevronUp, Filter, X } from 'lucide-react';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
+import { imageUrl } from '../../services/galleryApi';
 
 const convertDigitsToMarathi = (str: string | number): string => {
   const marathiDigits = ['०', '१', '२', '३', '४', '५', '६', '७', '८', '९'];
@@ -13,7 +14,12 @@ export const AdminShibirPage: React.FC = () => {
   const [registrations, setRegistrations] = useState<ShibirRegistrationData[]>(initialCached || []);
   const [loading, setLoading] = useState<boolean>(!initialCached);
   const [shibirMasters, setShibirMasters] = useState<ShibirMaster[]>([]);
+  const [payments, setPayments] = useState<PaymentData[]>(api.getCachedPayments() || []);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [viewScreenshotUrl, setViewScreenshotUrl] = useState<string | null>(null);
+  const [paymentActionLoadingId, setPaymentActionLoadingId] = useState<number | null>(null);
+  const [payRejectModalId, setPayRejectModalId] = useState<number | null>(null);
+  const [payRejectReason, setPayRejectReason] = useState('');
 
   // Filters state
   const [showFilters, setShowFilters] = useState(false);
@@ -36,19 +42,61 @@ export const AdminShibirPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [regs, masters] = await Promise.all([
+      const [regs, masters, payData] = await Promise.all([
         api.getAllShibirs().catch(() => []),
         api.getShibirMasters().catch(() => []),
+        api.getAllPayments().catch(() => []),
       ]);
       const sortedRegs = [...regs].sort(
         (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
       );
       setRegistrations(sortedRegs);
       setShibirMasters(masters);
+      setPayments(payData);
     } catch (err) {
       console.error('Error loading shibir data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getShibirPayment = (shibirRegId: number): PaymentData | undefined => {
+    return payments.find((p) => {
+      const regType = (p.registrationType || '').toUpperCase();
+      const memType = (p.membershipType || '').toLowerCase();
+      const isShibirPay = regType === 'SHIBIR' || memType.includes('shibir') || memType.includes('शिबीर');
+      return isShibirPay && (p.registrationId === shibirRegId || p.memberId === shibirRegId);
+    });
+  };
+
+  const handleVerifyPayment = async (paymentId: number) => {
+    setPaymentActionLoadingId(paymentId);
+    try {
+      const updated = await api.updatePaymentStatus(paymentId, 'VERIFIED');
+      setPayments(prev => prev.map(p => p.id === paymentId ? { ...p, ...updated, status: 'VERIFIED' } : p));
+    } catch (err: any) {
+      alert('पेमेंट पडताळणी करताना त्रुटी: ' + (err?.message || err));
+    } finally {
+      setPaymentActionLoadingId(null);
+    }
+  };
+
+  const handleConfirmRejectPayment = async () => {
+    if (payRejectModalId === null) return;
+    if (!payRejectReason.trim()) {
+      alert('कृपया पेमेंट नाकारण्याचे कारण प्रविष्ट करा.');
+      return;
+    }
+    setPaymentActionLoadingId(payRejectModalId);
+    try {
+      const updated = await api.updatePaymentStatus(payRejectModalId, 'REJECTED', payRejectReason.trim());
+      setPayments(prev => prev.map(p => p.id === payRejectModalId ? { ...p, ...updated, status: 'REJECTED', rejectionReason: payRejectReason.trim() } : p));
+      setPayRejectModalId(null);
+      setPayRejectReason('');
+    } catch (err: any) {
+      alert('पेमेंट नाकारताना त्रुटी: ' + (err?.message || err));
+    } finally {
+      setPaymentActionLoadingId(null);
     }
   };
 
@@ -387,14 +435,47 @@ export const AdminShibirPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div>
-                      <h5 className="text-xs font-bold text-saffron-dark mb-2 border-b border-saffron/20 pb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट माहिती</h5>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div><span className="text-charcoal/50 font-semibold block">पेमेंट प्रकार</span><span className="font-normal text-charcoal">{r.paymentMode || 'Online'}</span></div>
-                        <div><span className="text-charcoal/50 font-semibold block">रक्कम</span><span className="font-normal text-charcoal">{r.amountPaid ? `₹${r.amountPaid}` : '-'}</span></div>
-                        <div><span className="text-charcoal/50 font-semibold block">UPI Txn ID</span><span className="font-normal text-charcoal">{r.upiTxnId || '-'}</span></div>
-                      </div>
-                    </div>
+                    {(() => {
+                      const payment = getShibirPayment(r.id);
+                      const ssUrl = payment?.screenshotUrl
+                        ? imageUrl(payment.screenshotUrl)
+                        : r.screenshotUrl
+                          ? imageUrl(r.screenshotUrl)
+                          : null;
+                      return (
+                        <div>
+                          <h5 className="text-xs font-bold text-saffron-dark mb-2 border-b border-saffron/20 pb-1" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट व स्क्रीनशॉट</h5>
+                          <div className="bg-white/80 p-3 rounded-lg border border-saffron/20 space-y-2">
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div><span className="text-charcoal/50 font-semibold block">पेमेंट प्रकार</span><span className="font-bold text-charcoal">{payment?.paymentMode || r.paymentMode || 'Online'}</span></div>
+                              <div><span className="text-charcoal/50 font-semibold block">रक्कम</span><span className="font-bold text-saffron-dark">{payment?.amount ? `₹${payment.amount}` : r.amountPaid ? `₹${r.amountPaid}` : '-'}</span></div>
+                              <div><span className="text-charcoal/50 font-semibold block">UPI Txn ID</span><span className="font-mono text-charcoal">{payment?.upiTxnId || r.upiTxnId || '-'}</span></div>
+                              <div>
+                                <span className="text-charcoal/50 font-semibold block">स्थिती</span>
+                                {payment ? (
+                                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${payment.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' : payment.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {payment.status === 'VERIFIED' ? 'सत्यापित' : payment.status === 'REJECTED' ? 'नाकारले' : 'प्रलंबित'}
+                                  </span>
+                                ) : <span>-</span>}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {ssUrl && (
+                                <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="px-2.5 py-1 bg-amber-100 text-saffron-dark font-bold rounded text-[11px] flex items-center gap-1">
+                                  <Eye size={12} /> स्क्रीनशॉट बघा
+                                </button>
+                              )}
+                              {payment && payment.status === 'PENDING' && (
+                                <>
+                                  <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => handleVerifyPayment(payment.id)} className="px-2.5 py-1 bg-emerald-600 text-white font-bold rounded text-[11px]">पडताळणी करा</button>
+                                  <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => { setPayRejectModalId(payment.id); setPayRejectReason(''); }} className="px-2.5 py-1 bg-rose-600 text-white font-bold rounded text-[11px]">नाकारा</button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {r.specialInfo && (
                       <div>
@@ -594,23 +675,48 @@ export const AdminShibirPage: React.FC = () => {
                               </div>
                             </div>
 
-                            <div>
-                              <h5 className="text-xs font-bold text-saffron-dark mb-3 border-b border-saffron/20 pb-1.5" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट व जमा माहिती</h5>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            {(() => {
+                              const payment = getShibirPayment(r.id);
+                              const ssUrl = payment?.screenshotUrl
+                                ? imageUrl(payment.screenshotUrl)
+                                : r.screenshotUrl
+                                  ? imageUrl(r.screenshotUrl)
+                                  : null;
+                              return (
                                 <div>
-                                  <span className="text-charcoal/50 font-semibold block mb-0.5">पेमेंट प्रकार</span>
-                                  <span className="font-normal text-charcoal">{r.paymentMode || 'Online'}</span>
+                                  <h5 className="text-xs font-bold text-saffron-dark mb-3 border-b border-saffron/20 pb-1.5" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट व जमा माहिती (स्क्रीनशॉट)</h5>
+                                  <div className="bg-white/90 p-3.5 rounded-xl border border-saffron/20 flex flex-wrap items-center justify-between gap-4 text-xs">
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
+                                      <div><span className="text-charcoal/50 font-semibold block mb-0.5">पेमेंट प्रकार</span><span className="font-bold text-charcoal">{payment?.paymentMode || r.paymentMode || 'Online'}</span></div>
+                                      <div><span className="text-charcoal/50 font-semibold block mb-0.5">भरलेली रक्कम</span><span className="font-bold text-saffron-dark">{payment?.amount ? `₹${payment.amount}` : r.amountPaid ? `₹${r.amountPaid}` : '-'}</span></div>
+                                      <div><span className="text-charcoal/50 font-semibold block mb-0.5">UPI Txn ID</span><span className="font-mono font-bold text-charcoal">{payment?.upiTxnId || r.upiTxnId || '-'}</span></div>
+                                      <div>
+                                        <span className="text-charcoal/50 font-semibold block mb-0.5">पेमेंट स्थिती</span>
+                                        {payment ? (
+                                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${payment.status === 'VERIFIED' ? 'bg-emerald-100 text-emerald-800' : payment.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
+                                            {payment.status === 'VERIFIED' ? 'सत्यापित' : payment.status === 'REJECTED' ? 'नाकारले' : 'प्रलंबित'}
+                                          </span>
+                                        ) : <span className="text-charcoal/40">-</span>}
+                                      </div>
+                                      <div>
+                                        <span className="text-charcoal/50 font-semibold block mb-0.5">स्क्रीनशॉट</span>
+                                        {ssUrl ? (
+                                          <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-saffron-dark font-bold rounded-lg transition-colors cursor-pointer">
+                                            <Eye size={13} /> स्क्रीनशॉट बघा
+                                          </button>
+                                        ) : <span className="text-charcoal/40">नाही</span>}
+                                      </div>
+                                    </div>
+                                    {payment && payment.status === 'PENDING' && (
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => handleVerifyPayment(payment.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs cursor-pointer">पडताळणी करा</button>
+                                        <button type="button" disabled={paymentActionLoadingId === payment.id} onClick={() => { setPayRejectModalId(payment.id); setPayRejectReason(''); }} className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs cursor-pointer">नाकारा</button>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div>
-                                  <span className="text-charcoal/50 font-semibold block mb-0.5">भरलेली रक्कम</span>
-                                  <span className="font-normal text-charcoal">{r.amountPaid ? `₹${r.amountPaid}` : '-'}</span>
-                                </div>
-                                <div>
-                                  <span className="text-charcoal/50 font-semibold block mb-0.5">UPI Txn ID</span>
-                                  <span className="font-normal text-charcoal">{r.upiTxnId || '-'}</span>
-                                </div>
-                              </div>
-                            </div>
+                              );
+                            })()}
 
                             {r.specialInfo && (
                               <div>
@@ -702,6 +808,38 @@ export const AdminShibirPage: React.FC = () => {
 
       {/* Confirm Modal */}
       <ConfirmModal state={confirmState} onClose={closeConfirm} />
+
+      {/* Payment Screenshot Modal */}
+      {viewScreenshotUrl && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4" onClick={() => setViewScreenshotUrl(null)}>
+          <div className="bg-white rounded-2xl max-w-lg w-full p-4 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-charcoal/10 pb-2">
+              <h4 className="font-bold text-saffron-dark text-sm">पेमेंट स्क्रीनशॉट</h4>
+              <button type="button" onClick={() => setViewScreenshotUrl(null)} className="p-1 rounded-lg hover:bg-charcoal/10"><X size={18} /></button>
+            </div>
+            <img src={viewScreenshotUrl} alt="Payment Screenshot" className="w-full max-h-[70vh] object-contain rounded-xl border border-saffron/20" />
+          </div>
+        </div>
+      )}
+
+      {/* Payment Reject Modal */}
+      {payRejectModalId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal/60 backdrop-blur-sm">
+          <div className="bg-white rounded-card-lg p-6 w-full max-w-md shadow-soft-lg border border-amber-200/60 space-y-3">
+            <h3 className="text-base font-bold text-saffron-dark">पेमेंट नाकारण्याचे कारण *</h3>
+            <textarea
+              value={payRejectReason}
+              onChange={(e) => setPayRejectReason(e.target.value)}
+              placeholder="पेमेंट का नाकारले ते नमूद करा..."
+              className="w-full border border-charcoal/20 rounded-xl p-3 text-sm min-h-[90px]"
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setPayRejectModalId(null)} className="px-4 py-2 text-xs font-bold bg-charcoal/10 rounded-xl">रद्द करा</button>
+              <button type="button" onClick={handleConfirmRejectPayment} className="px-4 py-2 text-xs font-bold bg-rose-600 text-white rounded-xl">नाकारा</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

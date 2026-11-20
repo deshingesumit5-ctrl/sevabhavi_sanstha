@@ -2,6 +2,7 @@ package com.SevabhaviSanstha.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.Nationalized;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -49,6 +50,14 @@ public class MarriageRegistration {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "district_id", nullable = false)
     private District district;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "taluka_id")
+    private Taluka taluka;
+
+    @Nationalized
+    @Column(name = "taluka_name", length = 150, columnDefinition = "NVARCHAR(150)")
+    private String talukaName;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "state_id", nullable = false)
@@ -141,6 +150,9 @@ public class MarriageRegistration {
 
     @Column(name = "subscription_duration_months")
     private Integer subscriptionDurationMonths = 6;
+
+    @Column(name = "biodata_limit")
+    private Integer biodataLimit = 10;
 
     @Column(name = "subscription_start_date")
     private LocalDate subscriptionStartDate;

@@ -38,16 +38,24 @@ public class DonationRegistrationController {
 
     // Step-by-Step Draft endpoint
     @PostMapping("/donation-registration/draft")
-    public ResponseEntity<DonationRegistration> saveDraft(@RequestBody DonationRequestDTO dto) {
-        DonationRegistration saved = donationRegistrationService.saveDraft(dto);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<?> saveDraft(@RequestBody DonationRequestDTO dto) {
+        try {
+            DonationRegistration saved = donationRegistrationService.saveDraft(dto);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Final Donation Submission
     @PostMapping("/donation-registration")
-    public ResponseEntity<DonationRegistration> submitDonation(@RequestBody DonationRequestDTO dto) {
-        DonationRegistration saved = donationRegistrationService.submitDonation(dto);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<?> submitDonation(@RequestBody DonationRequestDTO dto) {
+        try {
+            DonationRegistration saved = donationRegistrationService.submitDonation(dto);
+            return ResponseEntity.ok(saved);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
     // Gateway Webhook / Payment Verification

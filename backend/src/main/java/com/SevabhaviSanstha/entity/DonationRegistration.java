@@ -60,6 +60,9 @@ public class DonationRegistration {
     @Column(name = "pincode", length = 10)
     private String pincode;
 
+    @Column(name = "pan_number", length = 20)
+    private String panNumber;
+
     // Step 2: देणगीचा प्रकार व उद्देश
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "donation_type_id", nullable = false)

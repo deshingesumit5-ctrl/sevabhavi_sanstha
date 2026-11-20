@@ -14,9 +14,26 @@ export interface GalleryImage {
   createdAt: string;
 }
 
+const retryFetch = async (url: string, attempts = 3): Promise<Response> => {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) return res;
+      if (res.status < 500) return res;
+    } catch (err) {
+      lastErr = err;
+    }
+    if (i < attempts - 1) {
+      await new Promise(r => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  throw lastErr || new Error("Network error");
+};
+
 export async function fetchAllImages(): Promise<GalleryImage[]> {
   try {
-    const res = await fetch(getGalleryApiBase());
+    const res = await retryFetch(getGalleryApiBase());
     if (!res.ok) throw new Error("गॅलरी लोड करता आली नाही");
     return await res.json();
   } catch (err) {
@@ -27,7 +44,7 @@ export async function fetchAllImages(): Promise<GalleryImage[]> {
 
 export async function fetchByCategory(category: string): Promise<GalleryImage[]> {
   try {
-    const res = await fetch(`${getGalleryApiBase()}/category/${category}`);
+    const res = await retryFetch(`${getGalleryApiBase()}/category/${category}`);
     if (!res.ok) throw new Error("फोटो लोड करता आले नाहीत");
     return await res.json();
   } catch (err) {
@@ -131,12 +148,14 @@ export async function deleteImage(id: number): Promise<void> {
 // backend serves files at /uploads/... — this builds the full URL for <img src>
 export function imageUrl(path: string): string {
   if (!path) return "";
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) return path;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
   const host = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
-  if (host === 'localhost' || host === '127.0.0.1') {
+  const port = typeof window !== 'undefined' && window.location ? window.location.port : '';
+  if ((host === 'localhost' || host === '127.0.0.1') && port !== '5173') {
     const envServer = (import.meta as any).env?.VITE_SERVER_URL;
     const serverBase = envServer || 'http://localhost:8080';
-    return `${serverBase}${path.startsWith('/') ? '' : '/'}${path}`;
+    return `${serverBase}${normalized}`;
   }
-  return path.startsWith('/') ? path : `/${path}`;
+  return normalized;
 }
