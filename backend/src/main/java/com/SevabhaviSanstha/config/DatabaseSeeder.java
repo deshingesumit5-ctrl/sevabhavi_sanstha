@@ -26,13 +26,13 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final DonationPurposeRepository donationPurposeRepository;
 
     public DatabaseSeeder(AdminRepository adminRepository,
-                          StateRepository stateRepository,
-                          DistrictRepository districtRepository,
-                          TalukaRepository talukaRepository,
-                          CityRepository cityRepository,
-                          PasswordEncoder passwordEncoder,
-                          DonationTypeRepository donationTypeRepository,
-                          DonationPurposeRepository donationPurposeRepository) {
+            StateRepository stateRepository,
+            DistrictRepository districtRepository,
+            TalukaRepository talukaRepository,
+            CityRepository cityRepository,
+            PasswordEncoder passwordEncoder,
+            DonationTypeRepository donationTypeRepository,
+            DonationPurposeRepository donationPurposeRepository) {
         this.adminRepository = adminRepository;
         this.stateRepository = stateRepository;
         this.districtRepository = districtRepository;
@@ -90,11 +90,14 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         if (donationPurposeRepository.count() == 0) {
             String[][] defaultPurposes = {
-                {"GENERAL", "General Fund", "सर्वसाधारण निधी / समाजोपयोगी कार्य", "संस्थेच्या विविध सामाजिक उपक्रमांसाठी"},
-                {"EDUCATION", "Education Support", "शिक्षण सहाय्य व शिष्यवृत्ती", "गरजू विद्यार्थ्यांसाठी शैक्षणिक मदत"},
-                {"MEDICAL", "Medical Aid", "वैद्यकीय मदत व आरोग्य शिबीर", "आरोग्य व रुग्ण सेवेसाठी"},
-                {"DISASTER", "Disaster Relief", "आपत्ती व्यवस्थापन व मदत निधी", "नैसर्गिक आपत्ती काळात मदतीसाठी"},
-                {"CULTURAL", "Cultural & Event Fund", "सांस्कृतिक व सामाजिक कार्यक्रम", "सांस्कृतिक व सामाजिक कार्यक्रमांसाठी"}
+                    { "GENERAL", "General Fund", "सर्वसाधारण निधी / समाजोपयोगी कार्य",
+                            "संस्थेच्या विविध सामाजिक उपक्रमांसाठी" },
+                    { "EDUCATION", "Education Support", "शिक्षण सहाय्य व शिष्यवृत्ती",
+                            "गरजू विद्यार्थ्यांसाठी शैक्षणिक मदत" },
+                    { "MEDICAL", "Medical Aid", "वैद्यकीय मदत व आरोग्य शिबीर", "आरोग्य व रुग्ण सेवेसाठी" },
+                    { "DISASTER", "Disaster Relief", "आपत्ती व्यवस्थापन व मदत निधी", "नैसर्गिक आपत्ती काळात मदतीसाठी" },
+                    { "CULTURAL", "Cultural & Event Fund", "सांस्कृतिक व सामाजिक कार्यक्रम",
+                            "सांस्कृतिक व सामाजिक कार्यक्रमांसाठी" }
             };
             for (String[] p : defaultPurposes) {
                 DonationPurpose dp = new DonationPurpose();
@@ -122,7 +125,8 @@ public class DatabaseSeeder implements CommandLineRunner {
                 seedStates = toSeedStates(rawList);
             }
 
-            // Preload all existing location tables in 4 queries instead of 1,500+ N+1 queries on every startup
+            // Preload all existing location tables in 4 queries instead of 1,500+ N+1
+            // queries on every startup
             Map<String, State> existingStatesByEn = new HashMap<>();
             for (State s : stateRepository.findAll()) {
                 if (s.getNameEn() != null) {
@@ -161,29 +165,34 @@ public class DatabaseSeeder implements CommandLineRunner {
             List<City> allNewCities = new ArrayList<>();
 
             for (SeedState sSeed : seedStates) {
-                if (sSeed.nameEn == null || sSeed.nameEn.isBlank()) continue;
+                if (sSeed.nameEn == null || sSeed.nameEn.isBlank())
+                    continue;
                 String sKey = sSeed.nameEn.trim().toLowerCase();
                 State state = existingStatesByEn.get(sKey);
                 if (state == null) {
                     state = new State();
                     state.setNameEn(sSeed.nameEn.trim());
-                    state.setNameMr(sSeed.nameMr != null && !sSeed.nameMr.isBlank() ? sSeed.nameMr.trim() : sSeed.nameEn.trim());
+                    state.setNameMr(sSeed.nameMr != null && !sSeed.nameMr.isBlank() ? sSeed.nameMr.trim()
+                            : sSeed.nameEn.trim());
                     state = stateRepository.save(state);
                     existingStatesByEn.put(sKey, state);
                     addedStates++;
                 }
 
-                if (sSeed.districts == null) continue;
+                if (sSeed.districts == null)
+                    continue;
 
                 for (SeedDistrict dSeed : sSeed.districts) {
-                    if (dSeed.nameEn == null || dSeed.nameEn.isBlank()) continue;
+                    if (dSeed.nameEn == null || dSeed.nameEn.isBlank())
+                        continue;
                     String dKey = state.getId() + "::" + dSeed.nameEn.trim().toLowerCase();
                     District district = existingDistrictsByKey.get(dKey);
                     if (district == null) {
                         district = new District();
                         district.setState(state);
                         district.setNameEn(dSeed.nameEn.trim());
-                        district.setNameMr(dSeed.nameMr != null && !dSeed.nameMr.isBlank() ? dSeed.nameMr.trim() : dSeed.nameEn.trim());
+                        district.setNameMr(dSeed.nameMr != null && !dSeed.nameMr.isBlank() ? dSeed.nameMr.trim()
+                                : dSeed.nameEn.trim());
                         district = districtRepository.save(district);
                         existingDistrictsByKey.put(dKey, district);
                         addedDistricts++;
@@ -191,15 +200,18 @@ public class DatabaseSeeder implements CommandLineRunner {
 
                     // Collect missing Talukas for this District
                     if (dSeed.talukas != null && !dSeed.talukas.isEmpty()) {
-                        Set<String> existingTalukas = existingTalukasByDistrict.computeIfAbsent(district.getId(), k -> new HashSet<>());
+                        Set<String> existingTalukas = existingTalukasByDistrict.computeIfAbsent(district.getId(),
+                                k -> new HashSet<>());
                         for (SeedName tSeed : dSeed.talukas) {
-                            if (tSeed.nameEn == null || tSeed.nameEn.isBlank()) continue;
+                            if (tSeed.nameEn == null || tSeed.nameEn.isBlank())
+                                continue;
                             String tKey = tSeed.nameEn.trim().toLowerCase();
                             if (!existingTalukas.contains(tKey)) {
                                 Taluka t = new Taluka();
                                 t.setDistrict(district);
                                 t.setNameEn(tSeed.nameEn.trim());
-                                t.setNameMr(tSeed.nameMr != null && !tSeed.nameMr.isBlank() ? tSeed.nameMr.trim() : tSeed.nameEn.trim());
+                                t.setNameMr(tSeed.nameMr != null && !tSeed.nameMr.isBlank() ? tSeed.nameMr.trim()
+                                        : tSeed.nameEn.trim());
                                 allNewTalukas.add(t);
                                 existingTalukas.add(tKey);
                             }
@@ -208,15 +220,18 @@ public class DatabaseSeeder implements CommandLineRunner {
 
                     // Collect missing Cities for this District
                     if (dSeed.cities != null && !dSeed.cities.isEmpty()) {
-                        Set<String> existingCities = existingCitiesByDistrict.computeIfAbsent(district.getId(), k -> new HashSet<>());
+                        Set<String> existingCities = existingCitiesByDistrict.computeIfAbsent(district.getId(),
+                                k -> new HashSet<>());
                         for (SeedName cSeed : dSeed.cities) {
-                            if (cSeed.nameEn == null || cSeed.nameEn.isBlank()) continue;
+                            if (cSeed.nameEn == null || cSeed.nameEn.isBlank())
+                                continue;
                             String cKey = cSeed.nameEn.trim().toLowerCase();
                             if (!existingCities.contains(cKey)) {
                                 City c = new City();
                                 c.setDistrict(district);
                                 c.setNameEn(cSeed.nameEn.trim());
-                                c.setNameMr(cSeed.nameMr != null && !cSeed.nameMr.isBlank() ? cSeed.nameMr.trim() : cSeed.nameEn.trim());
+                                c.setNameMr(cSeed.nameMr != null && !cSeed.nameMr.isBlank() ? cSeed.nameMr.trim()
+                                        : cSeed.nameEn.trim());
                                 allNewCities.add(c);
                                 existingCities.add(cKey);
                             }
@@ -244,9 +259,11 @@ public class DatabaseSeeder implements CommandLineRunner {
     @SuppressWarnings("unchecked")
     private List<SeedState> toSeedStates(List<Object> rawList) {
         List<SeedState> result = new ArrayList<>();
-        if (rawList == null) return result;
+        if (rawList == null)
+            return result;
         for (Object item : rawList) {
-            if (!(item instanceof Map<?, ?> sMap)) continue;
+            if (!(item instanceof Map<?, ?> sMap))
+                continue;
             SeedState s = new SeedState();
             s.nameEn = asString(sMap.get("nameEn"));
             s.nameMr = asString(sMap.get("nameMr"));
@@ -254,7 +271,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             Object dObj = sMap.get("districts");
             if (dObj instanceof List<?> dList) {
                 for (Object dItem : dList) {
-                    if (!(dItem instanceof Map<?, ?> dMap)) continue;
+                    if (!(dItem instanceof Map<?, ?> dMap))
+                        continue;
                     SeedDistrict d = new SeedDistrict();
                     d.nameEn = asString(dMap.get("nameEn"));
                     d.nameMr = asString(dMap.get("nameMr"));
@@ -270,9 +288,11 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     private List<SeedName> toSeedNames(Object raw) {
         List<SeedName> list = new ArrayList<>();
-        if (!(raw instanceof List<?> items)) return list;
+        if (!(raw instanceof List<?> items))
+            return list;
         for (Object item : items) {
-            if (!(item instanceof Map<?, ?> map)) continue;
+            if (!(item instanceof Map<?, ?> map))
+                continue;
             SeedName n = new SeedName();
             n.nameEn = asString(map.get("nameEn"));
             n.nameMr = asString(map.get("nameMr"));
