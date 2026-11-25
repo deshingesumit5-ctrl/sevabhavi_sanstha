@@ -13,7 +13,7 @@ import { api, BASE_URL, type State, type District, type Taluka, type City, type 
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage, deleteImage, fetchByCategory, imageUrl, type GalleryImage } from '../../services/galleryApi';
 import { QRCodeSVG } from 'qrcode.react';
-import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
+import { saveDraft, loadDraft, clearDraft, dataUrlToFile } from '../../utils/formPersistence';
 import { validateShibirForm, type ShibirFormErrors } from '../../utils/validations';
 import { buildUpiLink } from '../../utils/upi';
 
@@ -457,7 +457,9 @@ export const ShibirRegistrationPage: React.FC = () => {
         fd.append('membershipType', 'shibir');
         fd.append('paymentMode', paymentMode);
         fd.append('upiTxnId', finalTxnId);
-        if (screenshotFile) fd.append('file', screenshotFile);
+        const uploadScreenshot =
+          screenshotFile || (screenshotPreview ? dataUrlToFile(screenshotPreview, `shibir_payment_${saved.id}`) : null);
+        if (uploadScreenshot) fd.append('file', uploadScreenshot);
 
         await api.submitPayment(fd);
       } catch (payErr: any) {

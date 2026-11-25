@@ -1079,7 +1079,7 @@ export const api = {
     return data;
   },
 
-  getAllPayments: async (): Promise<PaymentData[]> => {
+  getAllPayments: async (forceRefresh = false): Promise<PaymentData[]> => {
     return cachedFetch('all_payments', async () => {
       const res = await fetch(`${BASE_URL}/payments`, {
         headers: {
@@ -1089,7 +1089,7 @@ export const api = {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'पेमेंट यादी प्राप्त करणे अयशस्वी.');
       return data;
-    });
+    }, forceRefresh);
   },
 
   updatePaymentStatus: async (id: number, status: string, reason?: string): Promise<PaymentData> => {

@@ -5,6 +5,7 @@ import com.SevabhaviSanstha.repository.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.json.JsonParserFactory;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final DonationTypeRepository donationTypeRepository;
     private final DonationPurposeRepository donationPurposeRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public DatabaseSeeder(AdminRepository adminRepository,
             StateRepository stateRepository,
@@ -32,7 +34,8 @@ public class DatabaseSeeder implements CommandLineRunner {
             CityRepository cityRepository,
             PasswordEncoder passwordEncoder,
             DonationTypeRepository donationTypeRepository,
-            DonationPurposeRepository donationPurposeRepository) {
+            DonationPurposeRepository donationPurposeRepository,
+            JdbcTemplate jdbcTemplate) {
         this.adminRepository = adminRepository;
         this.stateRepository = stateRepository;
         this.districtRepository = districtRepository;
@@ -41,11 +44,13 @@ public class DatabaseSeeder implements CommandLineRunner {
         this.passwordEncoder = passwordEncoder;
         this.donationTypeRepository = donationTypeRepository;
         this.donationPurposeRepository = donationPurposeRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        ensurePaymentsSchemaCompatible();
         String defaultEmail = "admin@gmail.com";
         Optional<Admin> adminOpt = adminRepository.findByEmail(defaultEmail);
 
@@ -109,6 +114,20 @@ public class DatabaseSeeder implements CommandLineRunner {
                 donationPurposeRepository.save(dp);
             }
             System.out.println("Default donation purposes seeded successfully.");
+        }
+    }
+
+    private void ensurePaymentsSchemaCompatible() {
+        try {
+            List<String> nullableFlags = jdbcTemplate.queryForList(
+                    "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'payments' AND COLUMN_NAME = 'member_id'",
+                    String.class);
+            if (!nullableFlags.isEmpty() && "NO".equalsIgnoreCase(nullableFlags.get(0))) {
+                jdbcTemplate.execute("ALTER TABLE payments ALTER COLUMN member_id INT NULL");
+                System.out.println("Migrated payments.member_id column to allow NULL values.");
+            }
+        } catch (Exception e) {
+            System.err.println("Schema check for payments.member_id failed: " + e.getMessage());
         }
     }
 

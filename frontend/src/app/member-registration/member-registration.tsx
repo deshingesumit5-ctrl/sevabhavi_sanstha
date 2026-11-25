@@ -693,6 +693,8 @@ export const MemberRegistrationPage: React.FC = () => {
       // Save payment
       const pData = new FormData();
       pData.append('memberId', memberId.toString());
+      pData.append('registrationType', 'MEMBER');
+      pData.append('registrationId', memberId.toString());
       pData.append('amount', finalAmount);
       pData.append('membershipType', formData.memberType);
       pData.append('paymentMode', 'UPI');
@@ -774,6 +776,8 @@ export const MemberRegistrationPage: React.FC = () => {
       // Save cash payment
       const pData = new FormData();
       pData.append('memberId', memberId.toString());
+      pData.append('registrationType', 'MEMBER');
+      pData.append('registrationId', memberId.toString());
       pData.append('amount', finalAmount);
       pData.append('membershipType', formData.memberType);
       pData.append('paymentMode', 'Cash');

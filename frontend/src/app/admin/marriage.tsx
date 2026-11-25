@@ -46,7 +46,7 @@ const AdminMarriagePage: React.FC = () => {
     try {
       const [data, payData] = await Promise.all([
         api.getAllMarriages(),
-        api.getAllPayments().catch(() => []),
+        api.getAllPayments(true).catch(() => []),
       ]);
       const sorted = [...data].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -460,10 +460,11 @@ const AdminMarriagePage: React.FC = () => {
                             {payment ? (
                               <>
                                 <div className="text-[11px] text-charcoal/70 font-mono">मोड: {payment.paymentMode} • Txn: {payment.upiTxnId || '-'}</div>
-                                <div className="flex flex-wrap gap-2 pt-1">
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
                                   {ssUrl && (
-                                    <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="px-2.5 py-1 bg-amber-100 text-saffron-dark font-bold rounded text-[11px] flex items-center gap-1">
-                                      <Eye size={12} /> स्क्रीनशॉट बघा
+                                    <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-saffron-dark font-bold rounded-lg text-[11px] cursor-pointer">
+                                      <img src={ssUrl} alt="स्क्रीनशॉट" className="w-7 h-7 object-cover rounded border border-saffron/30" />
+                                      <span>स्क्रीनशॉट बघा</span>
                                     </button>
                                   )}
                                   {payment.status === 'PENDING' && (
@@ -754,8 +755,9 @@ const AdminMarriagePage: React.FC = () => {
                                       <div>
                                         <span className="text-charcoal/50 font-semibold block">स्क्रीनशॉट</span>
                                         {ssUrl ? (
-                                          <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="mt-0.5 inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-saffron-dark font-bold rounded-lg transition-colors cursor-pointer">
-                                            <Eye size={13} /> स्क्रीनशॉट बघा
+                                          <button type="button" onClick={() => setViewScreenshotUrl(ssUrl)} className="mt-0.5 inline-flex items-center gap-1.5 px-2 py-1 bg-amber-100 hover:bg-amber-200 text-saffron-dark font-bold rounded-lg transition-colors cursor-pointer">
+                                            <img src={ssUrl} alt="स्क्रीनशॉट" className="w-8 h-8 object-cover rounded border border-saffron/30" />
+                                            <span>बघा</span>
                                           </button>
                                         ) : <span className="text-charcoal/40">नाही</span>}
                                       </div>

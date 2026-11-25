@@ -37,3 +37,23 @@ export function clearDraft(key: string = DEFAULT_STORAGE_KEY): void {
   }
 }
 
+export function dataUrlToFile(dataUrl: string, baseName: string = "screenshot"): File | null {
+  try {
+    if (!dataUrl || !dataUrl.startsWith("data:")) return null;
+    const [header, base64] = dataUrl.split(",");
+    if (!base64) return null;
+    const mimeMatch = header.match(/data:([^;]+);/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const ext = mime.split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new File([bytes], `${baseName}.${ext}`, { type: mime });
+  } catch (err) {
+    console.error("Failed to convert data URL to File:", err);
+    return null;
+  }
+}
+

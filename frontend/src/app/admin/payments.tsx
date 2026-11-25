@@ -59,6 +59,7 @@ export const AdminPaymentsPage: React.FC = () => {
 
   // Modals state
   const [viewScreenshotUrl, setViewScreenshotUrl] = useState<string | null>(null);
+  const [brokenImages, setBrokenImages] = useState<Record<number, boolean>>({});
   const [rejectModalPaymentId, setRejectModalPaymentId] = useState<number | null>(null);
   const [rejectionReason, setRejectionReason] = useState<string>('');
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
@@ -91,7 +92,7 @@ export const AdminPaymentsPage: React.FC = () => {
   const loadPayments = async () => {
     try {
       const [allPay, allMem, allMar, allShi, allDon] = await Promise.all([
-        api.getAllPayments().catch(() => []),
+        api.getAllPayments(true).catch(() => []),
         api.getAllMembers().catch(() => []),
         api.getAllMarriages().catch(() => []),
         api.getAllShibirs().catch(() => []),
@@ -101,6 +102,7 @@ export const AdminPaymentsPage: React.FC = () => {
       const enriched = allPay.map((p) => {
         let name = p.memberName;
         let mobile = p.memberMobile;
+        let screenshotUrl = p.screenshotUrl;
         const regType = (p.registrationType || '').toUpperCase();
         const regId = p.registrationId || p.memberId;
 
@@ -116,6 +118,9 @@ export const AdminPaymentsPage: React.FC = () => {
             if (found) {
               name = found.fullName;
               mobile = found.mobile;
+              if (!screenshotUrl && found.screenshotUrl) {
+                screenshotUrl = found.screenshotUrl;
+              }
             }
           } else if (regType === 'DONATION' || (p.membershipType || '').toLowerCase().includes('donation')) {
             const found = allDon.find(d => d.id === regId);
@@ -130,15 +135,22 @@ export const AdminPaymentsPage: React.FC = () => {
               mobile = found.mobile;
             }
           }
+        } else if (!screenshotUrl && (regType === 'SHIBIR' || (p.membershipType || '').toLowerCase().includes('shibir'))) {
+          const found = allShi.find(s => s.id === regId);
+          if (found?.screenshotUrl) {
+            screenshotUrl = found.screenshotUrl;
+          }
         }
 
         return {
           ...p,
+          screenshotUrl,
           memberName: name || 'अर्जदार #' + (regId || p.id),
           memberMobile: mobile || p.memberMobile || '-',
         };
       });
 
+      setBrokenImages({});
       setPayments(enriched);
     } catch (err: any) {
       console.error('Error loading payments:', err);
@@ -843,11 +855,21 @@ export const AdminPaymentsPage: React.FC = () => {
                     <div className="flex items-center gap-2 pt-1">
                       {p.screenshotUrl ? (
                         <button
+                          type="button"
                           onClick={() => setViewScreenshotUrl(imageUrl(p.screenshotUrl))}
-                          className="flex-1 justify-center px-3 py-2 bg-blue-50 active:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+                          className="flex-1 justify-center px-3 py-1.5 bg-blue-50 active:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors"
                         >
-                          <Eye size={15} />
-                          स्क्रीनशॉट बघा
+                          {!brokenImages[p.id] ? (
+                            <img
+                              src={imageUrl(p.screenshotUrl)}
+                              alt="पेमेंट स्क्रीनशॉट"
+                              onError={() => setBrokenImages((prev) => ({ ...prev, [p.id]: true }))}
+                              className="w-8 h-8 object-cover rounded-md border border-blue-200 shrink-0"
+                            />
+                          ) : (
+                            <Eye size={15} />
+                          )}
+                          <span>स्क्रीनशॉट बघा</span>
                         </button>
                       ) : (
                         <div className="flex-1 text-center py-1.5 text-xs text-charcoal/40 font-medium bg-amber-50/30 rounded-xl">
@@ -935,12 +957,24 @@ export const AdminPaymentsPage: React.FC = () => {
                         <td className="p-3.5 text-center">
                           {p.screenshotUrl ? (
                             <button
+                              type="button"
                               onClick={() => setViewScreenshotUrl(imageUrl(p.screenshotUrl))}
-                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
+                              className="group relative inline-flex items-center justify-center rounded-lg overflow-hidden border border-saffron/30 hover:border-saffron shadow-xs bg-cream/30 cursor-pointer transition-all"
                               title="स्क्रीनशॉट बघा"
                             >
-                              <Eye size={12} />
-                              बघा
+                              {!brokenImages[p.id] ? (
+                                <img
+                                  src={imageUrl(p.screenshotUrl)}
+                                  alt="पेमेंट स्क्रीनशॉट"
+                                  onError={() => setBrokenImages((prev) => ({ ...prev, [p.id]: true }))}
+                                  className="w-12 h-12 object-cover group-hover:scale-105 transition-transform"
+                                />
+                              ) : (
+                                <span className="px-2.5 py-1.5 bg-blue-50 text-blue-700 text-[10px] font-bold inline-flex items-center gap-1">
+                                  <Eye size={12} />
+                                  बघा
+                                </span>
+                              )}
                             </button>
                           ) : (
                             <span className="text-[10px] text-charcoal/40 font-semibold">-</span>
@@ -990,8 +1024,14 @@ export const AdminPaymentsPage: React.FC = () => {
 
       {/* Full-size Screenshot Viewer Modal */}
       {viewScreenshotUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs">
-          <div className="relative bg-white rounded-card-lg shadow-2xl max-w-2xl w-full p-4 overflow-hidden space-y-3">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs"
+          onClick={() => setViewScreenshotUrl(null)}
+        >
+          <div
+            className="relative bg-white rounded-card-lg shadow-2xl max-w-2xl w-full p-4 overflow-hidden space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-charcoal/10 pb-2">
               <h4 className="text-xs font-bold text-saffron-dark" style={{ fontFamily: "'Baloo 2', sans-serif" }}>पेमेंट स्क्रीनशॉट</h4>
               <button

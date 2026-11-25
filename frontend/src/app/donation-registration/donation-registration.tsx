@@ -40,7 +40,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { uploadImage, deleteImage, fetchByCategory, imageUrl, type GalleryImage } from '../../services/galleryApi';
 import { validateDonationForm, type DonationFormErrors } from '../../utils/validations';
-import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
+import { saveDraft, loadDraft, clearDraft, dataUrlToFile } from '../../utils/formPersistence';
 import { buildUpiLink } from '../../utils/upi';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -428,8 +428,10 @@ export const DonationRegistrationPage: React.FC = () => {
       const result = await api.submitDonationRegistration(payload);
       setReceiptNumber(result.receiptNumber);
 
-      // If screenshot file passed, save to general payment submission if needed
-      if (file) {
+      // If screenshot file passed or available from preview, save to general payment submission
+      const uploadScreenshot =
+        file || screenshotFile || (screenshotPreview ? dataUrlToFile(screenshotPreview, `donation_payment_${result.id}`) : null);
+      if (uploadScreenshot) {
         try {
           const pData = new FormData();
           pData.append('registrationId', result.id.toString());
@@ -440,10 +442,10 @@ export const DonationRegistrationPage: React.FC = () => {
           pData.append('membershipType', 'DONATION');
           pData.append('paymentMode', 'UPI');
           pData.append('upiTxnId', finalTxnId);
-          pData.append('file', file);
-          await api.submitPayment(pData).catch(() => {});
-        } catch {
-          // ignore optional screenshot upload error
+          pData.append('file', uploadScreenshot);
+          await api.submitPayment(pData);
+        } catch (payErr) {
+          console.error('Failed to upload donation payment screenshot:', payErr);
         }
       }
 

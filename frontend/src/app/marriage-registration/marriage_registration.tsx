@@ -7,7 +7,7 @@ import { uploadImage, imageUrl, deleteImage, fetchByCategory, type GalleryImage 
 import { useAuth } from '../../context/AuthContext';
 import { validateMarriageForm, type MarriageFormErrors } from '../../utils/validations';
 import { QRCodeSVG } from 'qrcode.react';
-import { saveDraft, loadDraft, clearDraft } from '../../utils/formPersistence';
+import { saveDraft, loadDraft, clearDraft, dataUrlToFile } from '../../utils/formPersistence';
 import { buildUpiLink } from '../../utils/upi';
 import ConfirmModal, { type ConfirmState } from '../../components/ConfirmModal';
 import RegistrationSuccessModal from '../../components/RegistrationSuccessModal';
@@ -290,6 +290,7 @@ export const MarriageRegistrationPage: React.FC = () => {
         return;
       }
       setScreenshotFile(file);
+      setErrors((prev: any) => ({ ...prev, screenshot: undefined }));
       const reader = new FileReader();
       reader.onloadend = () => {
         setScreenshotPreview(reader.result as string);
@@ -503,13 +504,11 @@ export const MarriageRegistrationPage: React.FC = () => {
       fd.append('membershipType', 'marriage');
       fd.append('paymentMode', paymentMode);
       fd.append('upiTxnId', finalTxnId);
-      if (screenshotFile) fd.append('file', screenshotFile);
+      const uploadScreenshot =
+        screenshotFile || (screenshotPreview ? dataUrlToFile(screenshotPreview, `marriage_payment_${saved.id}`) : null);
+      if (uploadScreenshot) fd.append('file', uploadScreenshot);
 
-      try {
-        await api.submitPayment(fd);
-      } catch (payErr: any) {
-        alert('नोंदणी जतन झाली, परंतु पेमेंट स्क्रीनशॉट अपलोड करण्यात अडचण आली: ' + (payErr?.message || payErr));
-      }
+      await api.submitPayment(fd);
 
       setRegistrationComplete(true);
       setShowSuccessModal(true);

@@ -378,6 +378,10 @@ public class PaymentServiceImpl implements PaymentService {
                     if (shibir != null) {
                         dto.setMemberName(shibir.getFullName());
                         dto.setMemberMobile(shibir.getMobile());
+                        if ((dto.getScreenshotUrl() == null || dto.getScreenshotUrl().isBlank())
+                                && shibir.getScreenshotUrl() != null && !shibir.getScreenshotUrl().isBlank()) {
+                            dto.setScreenshotUrl(shibir.getScreenshotUrl());
+                        }
                     }
                 } else if ("DONATION".equals(regType) || (p.getMembershipType() != null && p.getMembershipType().toLowerCase().contains("donation"))) {
                     DonationRegistration donation = donationRegistrationRepository.findById(regId).orElse(null);
