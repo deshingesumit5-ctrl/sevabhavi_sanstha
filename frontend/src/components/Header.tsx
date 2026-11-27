@@ -52,15 +52,15 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Center: NGO Name & Tagline */}
       <div className="flex flex-col items-center text-center px-1 sm:px-2 flex-1 min-w-0">
-        <h1 className="text-[15px] sm:text-xl md:text-2xl font-bold text-maroon leading-tight m-0 tracking-wide truncate max-w-full" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
+        <h1 className="text-[13px] min-[400px]:text-[14.5px] sm:text-xl md:text-2xl font-bold text-maroon leading-snug sm:leading-tight m-0 tracking-normal sm:tracking-wide max-w-full" style={{ fontFamily: "'Baloo 2', sans-serif" }}>
           दापोली मंडणगड सेवाभावी संस्था, पुणे
         </h1>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="h-[1px] w-4 bg-saffron"></span>
-          <span className="text-[10px] sm:text-xs font-semibold text-saffron tracking-widest uppercase">
+          <span className="h-[1px] w-3 sm:w-4 bg-saffron shrink-0"></span>
+          <span className="text-[10px] sm:text-xs font-semibold text-saffron tracking-wider sm:tracking-widest uppercase whitespace-nowrap">
             जन सेवा हीच ईश्वर सेवा
           </span>
-          <span className="h-[1px] w-4 bg-saffron"></span>
+          <span className="h-[1px] w-3 sm:w-4 bg-saffron shrink-0"></span>
         </div>
       </div>
 
