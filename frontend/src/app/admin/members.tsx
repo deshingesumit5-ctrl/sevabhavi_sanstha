@@ -196,8 +196,8 @@ const AdminMembersPage: React.FC = () => {
     const matchActive = filterActive === 'active'
       ? (m.isActive !== false)
       : filterActive === 'inactive'
-      ? (m.isActive === false)
-      : true;
+        ? (m.isActive === false)
+        : true;
     return matchName && matchCity && matchType && matchBloodGroup && matchActive;
   });
 
@@ -227,11 +227,10 @@ const AdminMembersPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm border ${
-              showFilters
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm border ${showFilters
                 ? 'bg-saffron text-white border-saffron'
                 : 'bg-amber-50 hover:bg-amber-100 text-charcoal border-amber-200/80'
-            }`}
+              }`}
             title="फिल्टर पर्याय"
           >
             <Filter size={15} />
@@ -350,11 +349,10 @@ const AdminMembersPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => handleToggleActive(member.id, member.isActive !== false)}
-                    className={`px-3 py-2 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1 transition-colors ${
-                      member.isActive === false
+                    className={`px-3 py-2 rounded-xl font-bold text-xs shadow-sm flex items-center gap-1 transition-colors ${member.isActive === false
                         ? 'bg-emerald-600 active:bg-emerald-700 text-white'
                         : 'bg-gray-600 active:bg-gray-700 text-white'
-                    }`}
+                      }`}
                   >
                     {member.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
                   </button>
@@ -530,11 +528,10 @@ const AdminMembersPage: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleToggleActive(member.id, member.isActive !== false)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shadow-sm ${
-                              member.isActive === false
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors shadow-sm ${member.isActive === false
                                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                                 : 'bg-gray-600 hover:bg-gray-700 text-white'
-                            }`}
+                              }`}
                             title={member.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
                           >
                             {member.isActive === false ? 'सक्रिय करा' : 'निष्क्रिय करा'}
@@ -729,11 +726,10 @@ const AdminMembersPage: React.FC = () => {
             </h3>
             <p className="text-xs text-charcoal/60 mb-3 font-medium">कृपया अर्ज नाकारण्याचे स्पष्ट कारण नमूद करा.</p>
             <textarea
-              className={`w-full border rounded-xl p-3 text-sm outline-none transition-all min-h-[110px] mb-2 font-medium ${
-                rejectError
+              className={`w-full border rounded-xl p-3 text-sm outline-none transition-all min-h-[110px] mb-2 font-medium ${rejectError
                   ? 'border-red-500 focus:ring-2 focus:ring-red-200'
                   : 'border-charcoal/20 focus:ring-2 focus:ring-saffron/30 focus:border-saffron'
-              }`}
+                }`}
               placeholder="येथे कारण लिहा..."
               value={rejectReason}
               onChange={(e) => {

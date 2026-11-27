@@ -15,7 +15,7 @@ public class RegistrationDraft {
     @Column(name = "current_step")
     private Integer currentStep;
 
-    @Column(name = "form_data_json", columnDefinition = "TEXT")
+    @Column(name = "form_data_json", columnDefinition = "NVARCHAR(MAX)")
     private String formDataJson;
 
     @Column(name = "membership_plan")

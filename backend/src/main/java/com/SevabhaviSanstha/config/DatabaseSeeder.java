@@ -120,10 +120,10 @@ public class DatabaseSeeder implements CommandLineRunner {
     private void ensurePaymentsSchemaCompatible() {
         try {
             List<String> nullableFlags = jdbcTemplate.queryForList(
-                    "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'payments' AND COLUMN_NAME = 'member_id'",
+                    "SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'payments' AND COLUMN_NAME = 'member_id'",
                     String.class);
             if (!nullableFlags.isEmpty() && "NO".equalsIgnoreCase(nullableFlags.get(0))) {
-                jdbcTemplate.execute("ALTER TABLE payments ALTER COLUMN member_id INT NULL");
+                jdbcTemplate.execute("ALTER TABLE dbo.payments ALTER COLUMN member_id INT NULL");
                 System.out.println("Migrated payments.member_id column to allow NULL values.");
             }
         } catch (Exception e) {

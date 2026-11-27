@@ -34,7 +34,7 @@ public class Payment {
     @Column(name = "upi_txn_id", length = 50)
     private String upiTxnId;
 
-    @Column(name = "screenshot_url", columnDefinition = "TEXT")
+    @Column(name = "screenshot_url", columnDefinition = "NVARCHAR(MAX)")
     private String screenshotUrl;
 
     @Column(name = "payment_date")

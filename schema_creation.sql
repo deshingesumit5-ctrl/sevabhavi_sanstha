@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    SEVABHAVI SANSTHA - TRANSACTIONAL REGISTRATION TABLES
    Database: sevabhavi_sanstha (MS SQL Server)
    ============================================================ */
@@ -17,10 +17,10 @@ CREATE TABLE member_registrations (
     id INT IDENTITY(1,1) PRIMARY KEY,
     full_name NVARCHAR(255) NOT NULL,
     birth_date DATE NOT NULL,
-    gender VARCHAR(10) NOT NULL, -- references genders.code (e.g. 'MALE', 'FEMALE', 'OTHER')
-    marital_status VARCHAR(20) NOT NULL, -- references marital_statuses.code (e.g. 'NEVER_MARRIED', 'MARRIED')
-    mobile VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NULL,
+    gender NVARCHAR(10) NOT NULL, -- references genders.code (e.g. 'MALE', 'FEMALE', 'OTHER')
+    marital_status NVARCHAR(20) NOT NULL, -- references marital_statuses.code (e.g. 'NEVER_MARRIED', 'MARRIED')
+    mobile NVARCHAR(20) NOT NULL,
+    email NVARCHAR(100) NULL,
     occupation NVARCHAR(100) NOT NULL,
     education NVARCHAR(100) NOT NULL,
     id_uploaded BIT DEFAULT 0,
@@ -29,9 +29,9 @@ CREATE TABLE member_registrations (
     state_id INT NOT NULL,
     district_id INT NOT NULL,
     taluka_id INT NOT NULL,
-    pincode VARCHAR(10) NOT NULL,
-    member_type VARCHAR(20) NOT NULL, -- 'annual' or 'lifetime'
-    id_proof_number VARCHAR(50) NULL,
+    pincode NVARCHAR(10) NOT NULL,
+    member_type NVARCHAR(20) NOT NULL, -- 'annual' or 'lifetime'
+    id_proof_number NVARCHAR(50) NULL,
     expectations NVARCHAR(1000) NULL,
     message NVARCHAR(1000) NULL,
     declaration BIT DEFAULT 0,
@@ -52,22 +52,22 @@ GO
 
 CREATE TABLE marriage_registrations (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    profile_type VARCHAR(10) NOT NULL, -- 'bride' or 'groom'
+    profile_type NVARCHAR(10) NOT NULL, -- 'bride' or 'groom'
     full_name NVARCHAR(255) NOT NULL,
     birth_date DATE NOT NULL,
     height NVARCHAR(50) NOT NULL,
-    blood_group VARCHAR(10) NOT NULL, -- references blood_groups.code (e.g. 'A+', 'O-')
-    marital_status VARCHAR(20) NOT NULL, -- references marital_statuses.code
+    blood_group NVARCHAR(10) NOT NULL, -- references blood_groups.code (e.g. 'A+', 'O-')
+    marital_status NVARCHAR(20) NOT NULL, -- references marital_statuses.code
     religion NVARCHAR(100) NOT NULL,
     caste NVARCHAR(100) NOT NULL,
     gotra NVARCHAR(100) NULL,
-    manglik VARCHAR(20) NOT NULL, -- 'yes', 'no', 'unknown'
+    manglik NVARCHAR(20) NOT NULL, -- 'yes', 'no', 'unknown'
     city NVARCHAR(100) NOT NULL, -- free text for city/town
     district_id INT NOT NULL,
     state_id INT NOT NULL,
-    mobile VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NULL,
-    parent_mobile VARCHAR(20) NOT NULL,
+    mobile NVARCHAR(20) NOT NULL,
+    email NVARCHAR(100) NULL,
+    parent_mobile NVARCHAR(20) NOT NULL,
     about_self NVARCHAR(1000) NOT NULL,
     expectations NVARCHAR(1000) NOT NULL,
     
@@ -75,10 +75,10 @@ CREATE TABLE marriage_registrations (
     education_level NVARCHAR(100) NOT NULL,
     degree_name NVARCHAR(100) NOT NULL,
     school_college NVARCHAR(255) NULL,
-    passing_year VARCHAR(10) NOT NULL,
+    passing_year NVARCHAR(10) NOT NULL,
     
     -- Occupation Details
-    occupation_type VARCHAR(50) NOT NULL, -- references 'private_job', 'gov_job', etc.
+    occupation_type NVARCHAR(50) NOT NULL, -- references 'private_job', 'gov_job', etc.
     designation NVARCHAR(100) NULL,
     company_name NVARCHAR(255) NULL,
     annual_income NVARCHAR(100) NOT NULL,
@@ -113,10 +113,10 @@ GO
 CREATE TABLE inquiries (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name NVARCHAR(255) NOT NULL,
-    mobile VARCHAR(20) NOT NULL,
-    email VARCHAR(100) NULL,
+    mobile NVARCHAR(20) NOT NULL,
+    email NVARCHAR(100) NULL,
     message NVARCHAR(2000) NOT NULL,
-    status VARCHAR(50) DEFAULT 'NEW',
+    status NVARCHAR(50) DEFAULT 'NEW',
     created_at DATETIME DEFAULT GETDATE()
 );
 GO
@@ -130,7 +130,7 @@ GO
 
 CREATE TABLE donation_types (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE, -- 'ONE_TIME', 'MONTHLY', 'YEARLY'
+    code NVARCHAR(50) NOT NULL UNIQUE, -- 'ONE_TIME', 'MONTHLY', 'YEARLY'
     name_en NVARCHAR(100) NOT NULL,  -- देणगी प्रकार इंग्रजी
     name_mr NVARCHAR(100) NOT NULL,  -- देणगी प्रकार मराठी
     is_active BIT DEFAULT 1           -- सक्रीय / निष्क्रीय
@@ -152,7 +152,7 @@ GO
 
 CREATE TABLE donation_purposes (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE, -- 'GENERAL_FUND', 'EDUCATION', etc.
+    code NVARCHAR(50) NOT NULL UNIQUE, -- 'GENERAL_FUND', 'EDUCATION', etc.
     name_en NVARCHAR(100) NOT NULL,  -- निधीचा उद्देश इंग्रजी
     name_mr NVARCHAR(100) NOT NULL,  -- निधीचा उद्देश मराठी
     description_mr NVARCHAR(500) NULL, -- उद्देशाचा सविस्तर तपशील
@@ -177,20 +177,20 @@ GO
 
 CREATE TABLE donation_registrations (
     id INT IDENTITY(1,1) PRIMARY KEY,
-    receipt_number VARCHAR(50) NOT NULL UNIQUE, -- पावती क्रमांक (उदा. DON-2026-0001)
+    receipt_number NVARCHAR(50) NOT NULL UNIQUE, -- पावती क्रमांक (उदा. DON-2026-0001)
     
     -- Step 1: वैयक्तिक माहिती (Personal Details)
     full_name NVARCHAR(255) NOT NULL,            -- पूर्ण नाव*
-    mobile VARCHAR(20) NOT NULL,                 -- मोबाईल नंबर*
-    email VARCHAR(100) NULL,                     -- ईमेल पत्ता
+    mobile NVARCHAR(20) NOT NULL,                 -- मोबाईल नंबर*
+    email NVARCHAR(100) NULL,                     -- ईमेल पत्ता
     birth_date DATE NULL,                        -- जन्म तारीख
-    gender VARCHAR(20) NULL,                     -- लिंग (Dropdown)
+    gender NVARCHAR(20) NULL,                     -- लिंग (Dropdown)
     address NVARCHAR(500) NOT NULL,              -- पत्ता*
     city NVARCHAR(100) NOT NULL,                 -- शहर/गाव*
     taluka_id INT NULL,                          -- तालुका ID
     district_id INT NULL,                        -- जिल्हा ID
     state_id INT NULL,                           -- राज्य ID
-    pincode VARCHAR(10) NULL,                    -- पिनकोड
+    pincode NVARCHAR(10) NULL,                    -- पिनकोड
     
     -- Step 2: देणगीचा प्रकार व उद्देश (Donation Type & Purpose)
     donation_type_id INT NOT NULL,               -- देणगी प्रकार FK (donation_types)
@@ -202,19 +202,19 @@ CREATE TABLE donation_registrations (
     
     -- Step 3: देणगी रक्कम (Donation Amount)
     amount DECIMAL(18,2) NOT NULL,               -- देणगी रक्कम*
-    currency VARCHAR(10) DEFAULT 'INR',          -- चलन
+    currency NVARCHAR(10) DEFAULT 'INR',          -- चलन
     
     -- Step 3: पेमेंट तपशील (Payment Details)
 
-    payment_method VARCHAR(50) NOT NULL,         -- पेमेंट पद्धत (Razorpay, UPI, Card, Net Banking, Offline)
-    payment_status VARCHAR(50) DEFAULT 'PENDING',-- पेमेंट स्थिती (PENDING, SUCCESS, FAILED, VERIFIED)
-    transaction_id VARCHAR(100) NULL,            -- ट्रान्सॅक्शन / युटीआर क्रमांक
-    gateway_reference VARCHAR(100) NULL,         -- Razorpay Order/Payment ID
+    payment_method NVARCHAR(50) NOT NULL,         -- पेमेंट पद्धत (Razorpay, UPI, Card, Net Banking, Offline)
+    payment_status NVARCHAR(50) DEFAULT 'PENDING',-- पेमेंट स्थिती (PENDING, SUCCESS, FAILED, VERIFIED)
+    transaction_id NVARCHAR(100) NULL,            -- ट्रान्सॅक्शन / युटीआर क्रमांक
+    gateway_reference NVARCHAR(100) NULL,         -- Razorpay Order/Payment ID
     payment_date DATETIME NULL,                  -- पेमेंट पूर्ण झालेली तारीख
     
     -- Metadata
     draft_step INT DEFAULT 1,                    -- सेव केलेला मसुदा टप्पा (1-7)
-    approval_status VARCHAR(50) DEFAULT 'PENDING',-- एडमिन मंजुरी स्थिती
+    approval_status NVARCHAR(50) DEFAULT 'PENDING',-- एडमिन मंजुरी स्थिती
     created_at DATETIME DEFAULT GETDATE(),       -- नोंदणी दिनांक
     updated_at DATETIME DEFAULT GETDATE(),       -- अपडेट दिनांक
     

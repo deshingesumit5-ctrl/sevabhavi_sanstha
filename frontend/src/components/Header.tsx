@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon/10 shadow-sm px-3 sm:px-5 py-2.5 flex items-center justify-between gap-2">
+    <header className="sticky top-0 z-40 w-full bg-white border-b border-maroon/10 shadow-sm px-3 sm:px-5 py-2 md:py-1.5 flex items-center justify-between gap-2">
       {/* Left: Mobile hamburger menu + Sanstha Logo */}
       <div className="flex items-center gap-2 shrink-0 min-w-[44px] sm:min-w-[64px]">
         <button
@@ -39,13 +39,13 @@ export const Header: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center focus:outline-none rounded-full hover:opacity-90 transition-opacity cursor-pointer"
+          className="flex items-center focus:outline-none hover:opacity-90 transition-opacity cursor-pointer shrink-0"
           title="दापोली मंडणगड सेवाभावी संस्था, पुणे"
         >
           <img
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="दापोली मंडणगड सेवाभावी संस्था लोगो"
-            className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-contain border border-saffron/20 bg-cream/30 p-0.5 shadow-2xs shrink-0"
+            className="h-11 sm:h-14 md:h-[82px] w-auto object-contain shrink-0"
           />
         </button>
       </div>

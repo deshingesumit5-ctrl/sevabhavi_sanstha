@@ -14,10 +14,10 @@ public class GalleryImage {
     @Column(columnDefinition = "NVARCHAR(255)")
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "image_url", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "image_url", nullable = false, columnDefinition = "NVARCHAR(MAX)")
     private String imageUrl;
 
     @Column(nullable = false, columnDefinition = "NVARCHAR(50)")

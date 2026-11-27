@@ -22,10 +22,10 @@ public class Category {
     private String title;
 
     @Nationalized
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "NVARCHAR(MAX)")
     private String description;
 
-    @Column(name = "image_url", columnDefinition = "TEXT")
+    @Column(name = "image_url", columnDefinition = "NVARCHAR(MAX)")
     private String imageUrl;
 
     @Column(name = "display_order")

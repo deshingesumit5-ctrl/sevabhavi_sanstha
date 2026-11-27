@@ -10,13 +10,13 @@ GO
 -- 1. Add matrimony columns to marriage_registrations if not present
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('marriage_registrations') AND name = 'password_hash')
 BEGIN
-    ALTER TABLE marriage_registrations ADD password_hash VARCHAR(255) NULL;
+    ALTER TABLE marriage_registrations ADD password_hash NVARCHAR(255) NULL;
 END
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('marriage_registrations') AND name = 'package_type')
 BEGIN
-    ALTER TABLE marriage_registrations ADD package_type VARCHAR(50) DEFAULT '6_MONTHS';
+    ALTER TABLE marriage_registrations ADD package_type NVARCHAR(50) DEFAULT '6_MONTHS';
 END
 GO
 
